@@ -23,10 +23,10 @@ router.get("/login", async (req, res) => {
 });
 
 router.post('/submitLogin', async (req, res) => {
-    const { username, email, password } = req.body;
+    const { email, password } = req.body;
 
     try {
-        const user = await db_users.getUser({ user: username, email: email });
+        const user = await db_users.getUser({ user: null, email: email });
 
     if (!user) {
       req.session.error =
@@ -38,7 +38,7 @@ router.post('/submitLogin', async (req, res) => {
             req.session.error = "Incorrect password! Please try again.";
             return res.redirect("/login");
         }
-
+        
         // Store user info in session
         req.session.user = { 
             user_id: user.user_id, 

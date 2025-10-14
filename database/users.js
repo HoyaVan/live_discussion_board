@@ -1,4 +1,4 @@
-const mysqlPool = include('database/connect_mysql');
+const { pool: mysqlPool } = include('database/connect_mysql');
 
 async function createUser(postData) {
     let createUserSQL = `
@@ -46,11 +46,11 @@ async function getUser(postData) {
     let getUserSQL = `
         SELECT user_id, username, email, password_hash
         FROM users
-        WHERE email = ? AND username = ?
+        WHERE email = ?
         LIMIT 1;
     `;
 
-    let params = [postData.email, postData.user];
+    let params = [postData.email];
     
     try {
         const [results] = await mysqlPool.execute(getUserSQL, params);
