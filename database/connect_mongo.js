@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-import dotenv from "dotenv";
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
@@ -9,11 +9,11 @@ if (!MONGODB_URI) {
 }
 
 // Connect once at boot
-await mongoose.connect(MONGODB_URI);
+mongoose.connect(MONGODB_URI);
 
-export const mongoConnection = mongoose.connection;
+const mongoConnection = mongoose.connection;
 // Handy helper for connect-mongo store:
-export const getMongoClient = () => mongoose.connection.getClient();
+const getMongoClient = () => mongoose.connection.getClient();
 
 mongoConnection.on("connected", () => {
   console.log("MongoDB connected successfully");
@@ -42,3 +42,5 @@ const shutdown = async (signal) => {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+module.exports = {mongoConnection, getMongoClient};

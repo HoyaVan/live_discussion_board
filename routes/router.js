@@ -1,9 +1,6 @@
 const router = require("express").Router();
-const session = require("express-session");
 const bcrypt = require("bcrypt");
 const Joi = require("joi");
-
-const mongoStore = include("/mongoStoreConnection");
 
 const db_users = include('database/users');
 
@@ -12,36 +9,24 @@ require("dotenv").config();
 const expireTime = 1 * 60 * 60 * 1000;
 const saltRounds = 12;
 
-router.use(
-  session({
-    secret: process.env.NODE_SESSION_SECRET,
-    store: mongoStore,
-    saveUninitialized: false,
-    resave: true,
-  })
-);
-
 router.use((req, res, next) => {
-  res.locals.username = req.session.username;
-  res.locals.userId = req.session.userId;
-  res.locals.authenticated = req.session.authenticated;
+  res.locals.username = req.session.user?.username;
+  res.locals.userId = req.session.user?.user_id;
+  res.locals.authenticated = !!req.session.user;
   next();
-})
+});
 
 router.get("/login", async (req, res) => {
   const error = req.session.error;
   req.session.error = null;
-
   res.render("login", { error });
 });
 
-router.post('/submitLogin', async (req,res) => {
-    const username = req.body.username;
-    const email = req.body.email;
-    const password = req.body.password;
+router.post('/submitLogin', async (req, res) => {
+    const { username, email, password } = req.body;
 
-try {
-    const user = await db_users.getUser({ user: username, email: email });
+    try {
+        const user = await db_users.getUser({ user: username, email: email });
 
     if (!user) {
       req.session.error =
@@ -49,32 +34,32 @@ try {
       return res.redirect("/login");
     }
 
-    if (!(await bcrypt.compare(password, user.password_hash))) {
-      req.session.error = "Incorrect password! Please try again.";
-      return res.redirect("/login");
+        if (!(await bcrypt.compare(password, user.password_hash))) {
+            req.session.error = "Incorrect password! Please try again.";
+            return res.redirect("/login");
+        }
+
+        // Store user info in session (matching your session structure)
+        req.session.user = { 
+            user_id: user.user_id, 
+            username: user.username,
+            email: user.email 
+        };
+        req.session.cookie.maxAge = expireTime;
+
+        console.log(`User ${user.username} logged in successfully!`);
+        return res.redirect("/loggedin");
+    } catch (error) {
+        console.log("Login error:", error);
+        return res.render("login", {
+            error: "An error occurred. Please try again.",
+        });
     }
-
-    // Session variable stuff
-    req.session.username = user.username;
-    req.session.userId = user.user_id;
-    req.session.authenticated = true;
-    req.session.cookie.maxAge = expireTime;
-
-    console.log(`User ${user.username}, logged in successfully!`);
-
-    return res.redirect("/loggedin");
-  } catch (error) {
-    console.log("Login error:", error);
-    return res.render("login", {
-      error: "An error occurred. Please try again.",
-    });
-  }
 });
 
 router.get("/signup", async (req, res) => {
   const error = req.session.error;
   req.session.error = null;
-
   res.render("signup", { error });
 });
 
@@ -118,25 +103,23 @@ router.post("/submitSignup", async (req, res) => {
   try {
     const existingUser = await db_users.getUser({ user: username, email: email });
 
-    if (existingUser && existingUser.length > 0) {
+    if (existingUser) {
       req.session.error = "Email or username already exists. Please try again.";
       return res.redirect("/signup");
     }
 
     const passwordHash = await bcrypt.hash(password, saltRounds);
-    const defaultUserRole = 'user';
 
     const success = await db_users.createUser({
       email: email,
       user: username,
-      hashedPassword: passwordHash,
-      role: defaultUserRole
+      hashedPassword: passwordHash
     });
 
     if (success) {
       res.redirect("/login");
     } else {
-      req.session.error = "MySQL Database Error! Please contact server administrators.";
+      req.session.error = "Database Error! Please contact server administrators.";
       return res.redirect("/signup");
     }
 
@@ -144,22 +127,21 @@ router.post("/submitSignup", async (req, res) => {
     console.error("Error during signup:", error);
     res.status(500).send("Internal Server Error");
   }
-
-  console.log("Signup submitted!");
 });
-
 
 router.get("/loggedin", async (req, res) => {
   const error = req.session.error;
   req.session.error = null;
-
   res.render("loggedin", { error });
-})
-
-router.get("/", async (req, res) => {
-  res.render("index");
 });
 
+router.get("/", async (req, res) => {
+  const error = req.session.error;
+  const success = req.session.success;
+  req.session.error = null;    // Clear after displaying
+  req.session.success = null;  // Clear after displaying
+  res.render("index", { error, success });
+});
 
 router.get("*", (req, res) => {
   res.status(404);
