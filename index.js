@@ -1,7 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
-const sessionMiddleware = require("./Auth/session_check.js");
-require("./database/connect_mongo.js"); // ensures MongoDB connects first
+const sessionMiddleware = require("./auth/session_check.js");
+require("./database/connect_mongo.js");
 
 global.base_dir = __dirname;
 global.abs_path = function(path) {

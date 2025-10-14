@@ -39,7 +39,7 @@ router.post('/submitLogin', async (req, res) => {
             return res.redirect("/login");
         }
 
-        // Store user info in session (matching your session structure)
+        // Store user info in session
         req.session.user = { 
             user_id: user.user_id, 
             username: user.username,
