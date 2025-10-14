@@ -1,16 +1,3 @@
--- MySQL 8.0 schema for Reddit-style discussion board
-
--- =========================================================
--- Global defaults
--- =========================================================
-CREATE DATABASE IF NOT EXISTS discussion_board
-  DEFAULT CHARACTER SET utf8mb4
-  DEFAULT COLLATE utf8mb4_unicode_ci;
-USE discussion_board;
-
--- =========================================================
--- Users
--- =========================================================
 CREATE TABLE IF NOT EXISTS users (
   user_id       BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   email         VARCHAR(255) NOT NULL,
@@ -25,17 +12,15 @@ CREATE TABLE IF NOT EXISTS users (
   UNIQUE KEY uq_users_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =========================================================
--- Threads
--- =========================================================
+
 CREATE TABLE IF NOT EXISTS threads (
   thread_id       BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   author_id       BIGINT UNSIGNED NOT NULL,
   title           VARCHAR(200) NOT NULL,
   description     TEXT NOT NULL,
   views           BIGINT UNSIGNED NOT NULL DEFAULT 0,
-  likes_count     BIGINT UNSIGNED NOT NULL DEFAULT 0,  -- optional cache
-  comments_count  BIGINT UNSIGNED NOT NULL DEFAULT 0,  -- optional cache
+  likes_count     BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  comments_count  BIGINT UNSIGNED NOT NULL DEFAULT 0,
   created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (thread_id),
@@ -46,22 +31,16 @@ CREATE TABLE IF NOT EXISTS threads (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Fulltext for threads (title + description)
-ALTER TABLE threads
-  ADD FULLTEXT KEY ftx_threads_title_desc (title, description);
 
--- =========================================================
--- Comments (nested via parent_comment_id + JSON path)
--- =========================================================
 CREATE TABLE IF NOT EXISTS comments (
   comment_id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   thread_id          BIGINT UNSIGNED NOT NULL,
   author_id          BIGINT UNSIGNED NOT NULL,
   parent_comment_id  BIGINT UNSIGNED NULL,
   body               TEXT NOT NULL,
-  path               JSON NOT NULL DEFAULT (JSON_ARRAY()), -- ancestor comment_ids
-  depth              INT UNSIGNED NOT NULL DEFAULT 0,      -- optional mirror of JSON_LENGTH(path)
-  likes_count        BIGINT UNSIGNED NOT NULL DEFAULT 0,   -- optional cache
+  path               JSON NOT NULL DEFAULT (JSON_ARRAY()),
+  depth              INT UNSIGNED NOT NULL DEFAULT 0,
+  likes_count        BIGINT UNSIGNED NOT NULL DEFAULT 0,
   created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (comment_id),
@@ -79,14 +58,7 @@ CREATE TABLE IF NOT EXISTS comments (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Fulltext for comments (body)
-ALTER TABLE comments
-  ADD FULLTEXT KEY ftx_comments_body (body);
 
--- =========================================================
--- Likes (polymorphic)
--- =========================================================
--- Use ENUM for target_type; target_id points to either threads.thread_id or comments.comment_id
 CREATE TABLE IF NOT EXISTS likes (
   _id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id     BIGINT UNSIGNED NOT NULL,
@@ -100,15 +72,12 @@ CREATE TABLE IF NOT EXISTS likes (
   CONSTRAINT fk_likes_user
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE
-  -- NOTE: cannot enforce FK to two different tables in one column; ensure existence at application layer.
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =========================================================
--- Thread views (optional analytics)
--- =========================================================
+
 CREATE TABLE IF NOT EXISTS thread_views (
   thread_id  BIGINT UNSIGNED NOT NULL,
-  viewer_key VARCHAR(255) NOT NULL,  -- session id / IP hash / user id
+  viewer_key VARCHAR(255) NOT NULL,
   first_view DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (thread_id, viewer_key),
   KEY idx_thread_views_thread (thread_id),
@@ -116,21 +85,3 @@ CREATE TABLE IF NOT EXISTS thread_views (
     FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- =========================================================
--- Helpful generated columns / indexes (optional)
--- =========================================================
--- If you want to query by depth frequently:
--- ALTER TABLE comments ADD KEY idx_comments_depth (depth);
-
--- If you often filter by updated time:
--- ALTER TABLE threads ADD KEY idx_threads_updated_at (updated_at);
--- ALTER TABLE comments ADD KEY idx_comments_updated_at (updated_at);
-
--- =========================================================
--- Notes on Search & Ranking by Term Frequency
--- =========================================================
--- FULLTEXT indexes above allow MATCH(...) AGAINST(...) queries for relevance.
--- If you must rank by raw term frequency across thread title/description + all its comments,
--- compute it in application code (e.g., REGEXP_COUNT in SELECTs and SUM per thread),
--- or pre-aggregate counts and store into a materialized table for fast sorting.
