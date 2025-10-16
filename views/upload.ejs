@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Thread</title>
+  <!-- IMPORTANT: Tailwind only (no Bulma here) -->
+  <link rel="stylesheet" href="/output.css" />
+</head>
+<body class="font-roboto h-full bg-gray-100">
+  <div class="flex min-h-full flex-col justify-center space-y-10 px-6 py-12 lg:px-8">
+    <!-- Header (same structure as signup) -->
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+      <h2 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+        Create Thread
+      </h2>
+      <p class="mt-2 text-center text-sm text-gray-600">
+        Share a question, idea, or discussion topic.
+      </p>
+    </div>
+
+    <% if (error) { %>
+      <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+        <div class="bg-red-100 text-red-600 px-4 py-3 rounded relative" role="alert">
+          <strong class="font-bold">Error: <%= error %></strong>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- FORM: same container as signup -->
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+      <form class="space-y-6" method="post" action="/threads/create" novalidate>
+        <!-- Title -->
+        <div>
+          <label for="title" class="block text-sm font-medium leading-6 text-gray-900">Title</label>
+          <div class="mt-2">
+            <input id="title" name="title" type="text" required minlength="5" maxlength="120"
+              placeholder="E.g., What's the best stack for a student project?"
+              class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm
+                     ring-1 ring-inset ring-gray-300 placeholder:text-gray-400
+                     focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6" />
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <label for="tags" class="block text-sm font-medium leading-6 text-gray-900">Tags (comma-separated)</label>
+          <div class="mt-2">
+            <input id="tags" name="tags" type="text" placeholder="mysql, tailwind, node"
+              class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm
+                     ring-1 ring-inset ring-gray-300 placeholder:text-gray-400
+                     focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6" />
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div>
+          <label for="body" class="block text-sm font-medium leading-6 text-gray-900">Body</label>
+          <div class="mt-2">
+            <textarea id="body" name="body" rows="6" required
+              placeholder="Describe your problem or start a discussion…"
+              class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm
+                     ring-1 ring-inset ring-gray-300 placeholder:text-gray-400
+                     focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"></textarea>
+          </div>
+        </div>
+
+        <!-- Visibility -->
+        <div>
+          <label class="block text-sm font-medium leading-6 text-gray-900">Visibility</label>
+          <div class="mt-2 flex items-center gap-3">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="radio" name="visibility" value="public" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-600" />
+              Public
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="radio" name="visibility" value="private" class="rounded border-gray-300 text-blue-600 focus:ring-blue-600" />
+              Private
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="radio" name="visibility" value="unlisted" class="rounded border-gray-300 text-blue-600 focus:ring-blue-600" />
+              Unlisted
+            </label>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div>
+          <label class="block text-sm font-medium leading-6 text-gray-900">Status</label>
+          <div class="mt-2 flex items-center gap-3">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="radio" name="status" value="published" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-600" />
+              Publish now
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="radio" name="status" value="draft" class="rounded border-gray-300 text-blue-600 focus:ring-blue-600" />
+              Save as draft
+            </label>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div>
+          <button type="submit"
+            class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5
+                   text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 transition">
+            Save Thread
+          </button>
+          <p class="mt-4 text-center text-sm text-gray-600">
+            or <a href="/profile" class="font-semibold text-indigo-600 hover:text-indigo-500">Back to profile</a>
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

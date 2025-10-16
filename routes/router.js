@@ -160,6 +160,11 @@ router.get("/profile", authRequired, (req, res) => {
     threads
   });
 });
+
+router.get('/upload', authRequired, (req, res) => {
+  res.render('upload', { error: null, success: null });
+});
+
 router.get("/", (req, res) => {
   const error = req.session.error;
   const success = req.session.success;
