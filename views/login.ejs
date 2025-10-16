@@ -8,88 +8,90 @@
   <title>Login Page</title>
 </head>
 
-<body class="font-roboto h-full bg-gray-100">
-  <div class="flex min-h-full flex-col justify-center space-y-10 px-6 py-12 lg:px-8">
+<body class="min-h-screen bg-gray-100 flex flex-col">
     <!-- Header -->
-    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-      <h2 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-        Log In
-      </h2>
-    </div>
-
-    <!-- Error block (same style as signup) -->
-    <% if (error) { %>
-      <div id="error" class="sm:mx-auto sm:w-full sm:max-w-sm">
-        <div class="bg-red-100 text-red-600 px-4 py-3 rounded relative" role="alert">
-          <strong class="font-bold">Error: <%= error %></strong>
-          <span class="block sm:inline"></span>
+    <header class="bg-white border-b">
+        <div class="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
+            <h1 class="text-2xl font-semibold">
+                <a href="/" class="text-blue-600 hover:text-blue-800">Discussion Platform</a>
+            </h1>
+            <div class="space-x-3">
+                <a href="/signup" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">Sign Up</a>
+            </div>
         </div>
-      </div>
-    <% } %>
+    </header>
 
-    <!-- Form -->
-    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-      <form class="space-y-6" method="post" action="/submitLogin" novalidate>
-        <!-- Email -->
-        <div>
-          <label for="email" class="block text-sm font-medium leading-6 text-gray-900">
-            Email Address
-          </label>
-          <div class="mt-2">
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autocomplete="email"
-              required
-              class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm
-                     ring-1 ring-inset ring-gray-300 placeholder:text-gray-400
-                     focus:ring-2 focus:ring-inset focus:ring-primary
-                     sm:text-sm sm:leading-6" />
-          </div>
+    <!-- Main Content -->
+    <main class="flex-1 flex items-center justify-center px-4">
+        <div class="max-w-md w-full">
+            <div class="bg-white rounded-lg shadow-md p-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900">Welcome Back</h2>
+                    <p class="text-gray-600 mt-2">Sign in to your account</p>
+                </div>
+
+                <!-- Error Message with Auto-Disappear -->
+                <% if (error) { %>
+                    <div id="error-message" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 relative">
+                        <button onclick="hideErrorMessage()" class="absolute top-3 right-1 pr-2 text-red-700 hover:text-red-900 font-bold text-lg">&times;</button>
+                        <strong class="font-bold">Error:</strong> <%= error %>
+                    </div>
+                <% } %>
+
+                <form action="/submitLogin" method="POST" class="space-y-6">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                        <input type="email" id="email" name="email" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter your email">
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input type="password" id="password" name="password" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter your password">
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                        Sign In
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-600">
+                        Don't have an account? 
+                        <a href="/signup" class="font-medium text-blue-600 hover:text-blue-500">Sign up here</a>
+                    </p>
+                </div>
+            </div>
         </div>
+    </main>
 
-        <!-- Password -->
-        <div>
-          <div class="flex items-center justify-between">
-            <label for="password" class="block text-sm font-medium leading-6 text-gray-900">
-              Password
-            </label>
-            <!-- Keep placeholder for future "Forgot password?" to match spacing -->
-            <div class="text-sm"></div>
-          </div>
-          <div class="mt-2">
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autocomplete="current-password"
-              required
-              class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm
-                     ring-1 ring-inset ring-gray-300 placeholder:text-gray-400
-                     focus:ring-2 focus:ring-inset focus:ring-primary
-                     sm:text-sm sm:leading-6" />
-          </div>
-        </div>
+    <!-- Footer -->
+    <%- include('templates/footer', { showQuickLinks: false }) %>
 
-        <!-- Submit -->
-        <div>
-          <button
-            type="submit"
-            class="flex w-full justify-center rounded-md bg-indigo-600
-                   px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm
-                   hover:bg-indigo-500 transition">
-            Log In
-          </button>
-        </div>
-      </form>
+    <script>
+        // Auto-hide error message after 3 seconds
+        function hideErrorMessage() {
+            const errorMsg = document.getElementById('error-message');
+            if (errorMsg) {
+                errorMsg.style.transition = 'opacity 0.5s ease-out';
+                errorMsg.style.opacity = '0';
+                setTimeout(() => {
+                    errorMsg.remove();
+                }, 500);
+            }
+        }
 
-      <!-- Link to signup to mirror your flow -->
-      <p class="mt-6 text-center text-sm text-gray-600">
-        Don’t have an account?
-        <a href="/signup" class="font-semibold text-indigo-600 hover:text-indigo-500">Sign up</a>
-      </p>
-    </div>
-  </div>
+        // Auto-hide after 3 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const errorMsg = document.getElementById('error-message');
+            if (errorMsg) {
+                setTimeout(hideErrorMessage, 3000);
+            }
+        });
+    </script>
 </body>
 </html>

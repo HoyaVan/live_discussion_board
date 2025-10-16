@@ -4,8 +4,8 @@
   "description": "Discussion Board Application",
   "main": "index.js",
   "scripts": {
-    "tailwind:build": "tailwindcss -i ./src/styles/tailwind.css -o ./public/output.css --minify",
-    "tailwind:watch": "tailwindcss -i ./src/styles/tailwind.css -o ./public/output.css --watch",
+    "tw:build": "npx @tailwindcss/cli -i ./src/styles/tailwind.css -o ./public/output.css --minify",
+    "tw:watch": "npx @tailwindcss/cli -i ./src/styles/tailwind.css -o ./public/output.css --watch",
     "start": "node index.js",
     "dev": "nodemon index.js"
   },

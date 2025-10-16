@@ -1,9 +1,11 @@
-// router.js
 const router = require("express").Router();
 const bcrypt = require("bcrypt");
-const Joi = require("joi");
+const db_users = include('database/utils/users');
+const db_threads = include('database/utils/threads');
+const db_comments = include('database/utils/comments');
+const db_likes = include('database/utils/likes');
+const validation = include('auth/validation');
 
-const db_users = include('database/users');
 require("dotenv").config();
 
 const expireTime = 1 * 60 * 60 * 1000;
@@ -32,6 +34,13 @@ router.get("/login", (req, res) => {
 
 router.post('/submitLogin', async (req, res) => {
   const { email, password } = req.body;
+
+  const loginResult = validation.validateLogin({ email, password });
+  if (loginResult.error) {
+    req.session.error = validation.formatValidationErrors(loginResult);
+    return res.redirect("/login");
+  }
+
   try {
     const user = await db_users.getUser({ user: null, email });
     if (!user) {
@@ -64,17 +73,9 @@ router.get("/signup", (req, res) => {
 router.post("/submitSignup", async (req, res) => {
   const { username, email, password } = req.body;
 
-  const schema = Joi.object({
-    username: Joi.string().max(20).required(),
-    email: Joi.string().email().required(),
-    password: Joi.string().min(10)
-      .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&_]).{10,}$"))
-      .required(),
-  });
-
-  const validationResult = schema.validate({ username, email, password }, { abortEarly: false });
+  const validationResult = validation.validateSignup({ username, email, password });
   if (validationResult.error) {
-    req.session.error = `${validationResult.error}`;
+    req.session.error = validation.formatValidationErrors(validationResult);
     return res.redirect("/signup");
   }
 
@@ -104,73 +105,201 @@ router.post("/submitSignup", async (req, res) => {
   }
 });
 
-// // >>> protect profile and pass displayName explicitly (belt and suspenders)
-// router.get("/profile", authRequired, (req, res) => {
-//   const error = req.session.error;
-//   req.session.error = null;
-//   res.render("profile", {
-//     error,
-//     displayName: req.session.user.username,   // ensure EJS has it
-//     username: req.session.user.username       // also pass username
-//   });
-// });
-router.get("/profile", authRequired, (req, res) => {
-  const threads = [
-    {
-      id: 101,
-      title: "Best starter stack for a student project?",
-      tags: ["node", "mysql", "tailwind"],
-      status: "published",        // "draft" | "published" | "archived"
-      visibility: "public",       // "public" | "private" | "unlisted"
-      views: 482,
-      comments: 19,
-      likes: 34,
-      createdAt: "2025-09-21",
-      updatedAt: "2025-10-12"
-    },
-    {
-      id: 102,
-      title: "Help: MySQL foreign keys not showing in DBeaver ERD",
-      tags: ["mysql", "erd", "dbeaver"],
-      status: "draft",
-      visibility: "private",
-      views: 73,
-      comments: 3,
-      likes: 4,
-      createdAt: "2025-10-01",
-      updatedAt: "2025-10-10"
-    },
-    {
-      id: 103,
-      title: "Tailwind v4: CLI + PostCSS quick setup",
-      tags: ["tailwind", "css", "build"],
-      status: "published",
-      visibility: "public",
-      views: 921,
-      comments: 41,
-      likes: 88,
-      createdAt: "2025-09-15",
-      updatedAt: "2025-10-14"
+// In your POST /threads/create route:
+router.post('/threads/create', authRequired, async (req, res) => {
+  const { title, body } = req.body;
+  
+  const validationResult = validation.validateThread({ title, body });
+  
+  if (validationResult.error) {
+    return res.render('upload', { 
+      error: validationResult.error.details.map(d => d.message).join(', '),
+      success: null 
+    });
+  }
+  
+  try {
+    const threadId = await db_threads.createThread({
+      author_id: req.session.user.user_id,
+      title: title,
+      description: body
+    });
+    
+    if (threadId) {
+      req.session.success = "Thread created successfully!";
+      return res.redirect('/profile');
+    } else {
+      return res.render('upload', { 
+        error: 'Failed to create thread. Please try again.',
+        success: null 
+      });
     }
-  ];
+  } catch (error) {
+    console.error("Error creating thread:", error);
+    return res.render('upload', { 
+      error: 'An error occurred. Please try again.',
+      success: null 
+    });
+  }
+});
 
-  res.render("profile", {
-    displayName: req.session.user.username,
-    username: req.session.user.username,
-    threads
-  });
+router.get("/profile", authRequired, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const threads = await db_threads.getThreadsByAuthor(userId);
+    
+    res.render("profile", {
+      displayName: req.session.user.username,
+      username: req.session.user.username,
+      threads
+    });
+  } catch (error) {
+    console.error("Error loading profile:", error);
+    res.render("profile", {
+      displayName: req.session.user.username,
+      username: req.session.user.username,
+      threads: []
+    });
+  }
+});
+
+// API route to get thread with comments
+router.get('/api/threads/:id', async (req, res) => {
+  try {
+    const threadId = req.params.id;
+
+    // increment every time the detail is fetched
+    await db_threads.incrementThreadViews(threadId);
+
+    // fetch the updated thread and comments
+    const thread = await db_threads.getThreadById(threadId);
+    const comments = await db_comments.getCommentsByThread(threadId);
+
+    const totalLikes = thread.likes_count + comments.reduce((sum, c) => sum + c.likes_count, 0);
+
+    res.json({
+      success: true,
+      thread: {
+        ...thread,
+        comments,
+        total_likes: totalLikes,
+      },
+    });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// API route to like a thread
+router.post('/api/threads/:id/like', authRequired, async (req, res) => {
+  try {
+    const threadId = req.params.id;
+    const userId = req.session.user.user_id;
+    
+    const success = await db_likes.likeThread(userId, threadId);
+    res.json({ success });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// API route to like a comment
+router.post('/api/comments/:id/like', authRequired, async (req, res) => {
+  try {
+    const commentId = req.params.id;
+    const userId = req.session.user.user_id;
+    
+    const success = await db_likes.likeComment(userId, commentId);
+    res.json({ success });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// API route to add a comment
+router.post('/api/threads/:id/comments', authRequired, async (req, res) => {
+  try {
+    const threadId = req.params.id;
+    const { comment } = req.body;
+    const userId = req.session.user.user_id;
+    
+    const commentId = await db_comments.createComment({
+      thread_id: threadId,
+      author_id: userId,
+      body: comment
+    });
+    
+    res.json({ success: !!commentId });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
 });
 
 router.get('/upload', authRequired, (req, res) => {
   res.render('upload', { error: null, success: null });
 });
 
-router.get("/", (req, res) => {
-  const error = req.session.error;
-  const success = req.session.success;
-  req.session.error = null;
-  req.session.success = null;
-  res.render("index", { error, success });
+// Logout route
+router.get('/logout', (req, res) => {
+  // Get the session ID before destroying
+  const sessionId = req.sessionID;
+  
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Error destroying session:', err);
+      return res.redirect('/');
+    }
+    
+    // Clear the session cookie
+    res.clearCookie('sid', { 
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production'
+    });
+    
+    // Redirect to home page with success message
+    res.redirect('/?loggedOut=true');
+  });
+});
+
+// Alternative POST logout route (if you prefer form submission)
+router.post('/logout', (req, res) => {
+  const sessionId = req.sessionID;
+  
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Error destroying session:', err);
+      return res.redirect('/');
+    }
+    
+    res.clearCookie('sid', { 
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production'
+    });
+    
+    res.redirect('/?loggedOut=true');
+  });
+});
+
+router.get("/", async (req, res) => {
+  try {
+    const threads = await db_threads.getAllThreads();
+    const loggedOut = req.query.loggedOut === 'true';
+    
+    res.render("index", { 
+      threads,
+      error: req.session.error,
+      success: loggedOut ? 'You have been logged out successfully.' : req.session.success
+    });
+  } catch (error) {
+    console.error("Error loading main page:", error);
+    res.render("index", { 
+      threads: [],
+      error: "Failed to load threads",
+      success: null
+    });
+  }
 });
 
 router.get("*", (req, res) => {
