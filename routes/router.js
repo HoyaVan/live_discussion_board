@@ -104,17 +104,62 @@ router.post("/submitSignup", async (req, res) => {
   }
 });
 
-// >>> protect profile and pass displayName explicitly (belt and suspenders)
+// // >>> protect profile and pass displayName explicitly (belt and suspenders)
+// router.get("/profile", authRequired, (req, res) => {
+//   const error = req.session.error;
+//   req.session.error = null;
+//   res.render("profile", {
+//     error,
+//     displayName: req.session.user.username,   // ensure EJS has it
+//     username: req.session.user.username       // also pass username
+//   });
+// });
 router.get("/profile", authRequired, (req, res) => {
-  const error = req.session.error;
-  req.session.error = null;
+  const threads = [
+    {
+      id: 101,
+      title: "Best starter stack for a student project?",
+      tags: ["node", "mysql", "tailwind"],
+      status: "published",        // "draft" | "published" | "archived"
+      visibility: "public",       // "public" | "private" | "unlisted"
+      views: 482,
+      comments: 19,
+      likes: 34,
+      createdAt: "2025-09-21",
+      updatedAt: "2025-10-12"
+    },
+    {
+      id: 102,
+      title: "Help: MySQL foreign keys not showing in DBeaver ERD",
+      tags: ["mysql", "erd", "dbeaver"],
+      status: "draft",
+      visibility: "private",
+      views: 73,
+      comments: 3,
+      likes: 4,
+      createdAt: "2025-10-01",
+      updatedAt: "2025-10-10"
+    },
+    {
+      id: 103,
+      title: "Tailwind v4: CLI + PostCSS quick setup",
+      tags: ["tailwind", "css", "build"],
+      status: "published",
+      visibility: "public",
+      views: 921,
+      comments: 41,
+      likes: 88,
+      createdAt: "2025-09-15",
+      updatedAt: "2025-10-14"
+    }
+  ];
+
   res.render("profile", {
-    error,
-    displayName: req.session.user.username,   // ensure EJS has it
-    username: req.session.user.username       // also pass username
+    displayName: req.session.user.username,
+    username: req.session.user.username,
+    threads
   });
 });
-
 router.get("/", (req, res) => {
   const error = req.session.error;
   const success = req.session.success;
