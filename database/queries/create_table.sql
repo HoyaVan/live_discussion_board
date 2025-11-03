@@ -85,3 +85,6 @@ CREATE TABLE IF NOT EXISTS thread_views (
     FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE comments
+  ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0 AFTER depth;

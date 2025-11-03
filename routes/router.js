@@ -88,7 +88,6 @@ router.post("/submitSignup", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, saltRounds);
     const success = await db_users.createUser({ email, user: username, hashedPassword: passwordHash });
-
     if (!success) {
       req.session.error = "Database Error! Please contact server administrators.";
       return res.redirect("/signup");
@@ -100,6 +99,10 @@ router.post("/submitSignup", async (req, res) => {
 
     return res.redirect("/profile");
   } catch (error) {
+    if (error && error.code === 'ER_DUP_ENTRY') {
+      req.session.error = "Email or username already exists. Please try another.";
+      return res.redirect("/signup");
+    }
     console.error("Error during signup:", error);
     return res.status(500).send("Internal Server Error");
   }
@@ -108,37 +111,37 @@ router.post("/submitSignup", async (req, res) => {
 // In your POST /threads/create route:
 router.post('/threads/create', authRequired, async (req, res) => {
   const { title, body } = req.body;
-  
+
   const validationResult = validation.validateThread({ title, body });
-  
+
   if (validationResult.error) {
-    return res.render('upload', { 
+    return res.render('upload', {
       error: validationResult.error.details.map(d => d.message).join(', '),
-      success: null 
+      success: null
     });
   }
-  
+
   try {
     const threadId = await db_threads.createThread({
       author_id: req.session.user.user_id,
       title: title,
       description: body
     });
-    
+
     if (threadId) {
       req.session.success = "Thread created successfully!";
       return res.redirect('/profile');
     } else {
-      return res.render('upload', { 
+      return res.render('upload', {
         error: 'Failed to create thread. Please try again.',
-        success: null 
+        success: null
       });
     }
   } catch (error) {
     console.error("Error creating thread:", error);
-    return res.render('upload', { 
+    return res.render('upload', {
       error: 'An error occurred. Please try again.',
-      success: null 
+      success: null
     });
   }
 });
@@ -147,7 +150,7 @@ router.get("/profile", authRequired, async (req, res) => {
   try {
     const userId = req.session.user.user_id;
     const threads = await db_threads.getThreadsByAuthor(userId);
-    
+
     res.render("profile", {
       displayName: req.session.user.username,
       username: req.session.user.username,
@@ -163,29 +166,90 @@ router.get("/profile", authRequired, async (req, res) => {
   }
 });
 
+// Edit comment (author only)
+router.delete('/api/comments/:id', authRequired, async (req, res) => {
+  try {
+    const commentId = Number(req.params.id);
+    const userId = req.session.user.user_id;
+
+    const meta = await db_comments.getCommentWithThreadAuthor(commentId);
+    if (!meta) return res.json({ success: false, error: 'Not found' });
+
+    const isAuthor = userId === meta.comment_author_id;
+    const isThreadOwner = userId === meta.thread_author_id;
+
+    let ok = false;
+    if (isAuthor) {
+      ok = await db_comments.softDeleteComment({ comment_id: commentId, author_id: userId });
+    } else if (isThreadOwner) {
+      ok = await db_comments.softDeleteCommentAsThreadAuthor({ comment_id: commentId });
+    } else {
+      return res.json({ success: false, error: 'Forbidden' });
+    }
+
+    res.json({ success: ok });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Soft-delete comment (author only)
+router.delete('/api/comments/:id', authRequired, async (req, res) => {
+  try {
+    const commentId = req.params.id;
+    const userId = req.session.user.user_id;
+
+    const ok = await db_comments.softDeleteComment({ comment_id: commentId, author_id: userId });
+    res.json({ success: ok });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 // API route to get thread with comments
 router.get('/api/threads/:id', async (req, res) => {
   try {
     const threadId = req.params.id;
 
-    // increment every time the detail is fetched
-    await db_threads.incrementThreadViews(threadId);
-
     // fetch the updated thread and comments
     const thread = await db_threads.getThreadById(threadId);
-    const comments = await db_comments.getCommentsByThread(threadId);
+    const commentsRaw = await db_comments.getCommentsByThread(threadId);
 
-    const totalLikes = thread.likes_count + comments.reduce((sum, c) => sum + c.likes_count, 0);
+    const userId = req.session.user?.user_id || null;
+
+    // Add permissions and display text
+    const enriched = commentsRaw.map(c => ({
+      ...c,
+      can_edit: !!userId && userId === c.author_id && c.is_deleted === 0,
+      can_delete: !!userId && (userId === c.author_id || userId === thread.author_id) && c.is_deleted === 0,
+      display_body: c.is_deleted ? 'deleted' : c.body
+    }));
+
+    // Build a tree (parent_comment_id -> children)
+    const byId = new Map();
+    enriched.forEach(c => byId.set(c.comment_id, { ...c, children: [] }));
+    const roots = [];
+    enriched.forEach(c => {
+      if (c.parent_comment_id) {
+        const parent = byId.get(c.parent_comment_id);
+        if (parent) parent.children.push(byId.get(c.comment_id));
+      } else {
+        roots.push(byId.get(c.comment_id));
+      }
+    });
+
+    const totalLikes = thread.likes_count + enriched.reduce((sum, c) => sum + c.likes_count, 0);
 
     res.json({
       success: true,
       thread: {
         ...thread,
-        comments,
+        comments: roots,
         total_likes: totalLikes,
       },
     });
   } catch (error) {
+    console.error("Error fetching thread:", error);
     res.json({ success: false, error: error.message });
   }
 });
@@ -195,7 +259,7 @@ router.post('/api/threads/:id/like', authRequired, async (req, res) => {
   try {
     const threadId = req.params.id;
     const userId = req.session.user.user_id;
-    
+
     const success = await db_likes.likeThread(userId, threadId);
     res.json({ success });
   } catch (error) {
@@ -208,7 +272,7 @@ router.post('/api/comments/:id/like', authRequired, async (req, res) => {
   try {
     const commentId = req.params.id;
     const userId = req.session.user.user_id;
-    
+
     const success = await db_likes.likeComment(userId, commentId);
     res.json({ success });
   } catch (error) {
@@ -219,17 +283,18 @@ router.post('/api/comments/:id/like', authRequired, async (req, res) => {
 // API route to add a comment
 router.post('/api/threads/:id/comments', authRequired, async (req, res) => {
   try {
-    const threadId = req.params.id;
-    const { comment } = req.body;
-    const userId = req.session.user.user_id;
-    
+    const threadId = Number(req.params.id);
+    const { comment, parent_comment_id } = req.body;
+    const parentId = parent_comment_id == null || parent_comment_id === '' ? null : Number(parent_comment_id);
+
     const commentId = await db_comments.createComment({
       thread_id: threadId,
-      author_id: userId,
-      body: comment
+      author_id: req.session.user.user_id,
+      body: comment,
+      parent_comment_id: parentId
     });
-    
-    res.json({ success: !!commentId });
+
+    res.json({ success: !!commentId, comment_id: commentId });
   } catch (error) {
     res.json({ success: false, error: error.message });
   }
@@ -243,20 +308,20 @@ router.get('/upload', authRequired, (req, res) => {
 router.get('/logout', (req, res) => {
   // Get the session ID before destroying
   const sessionId = req.sessionID;
-  
+
   req.session.destroy((err) => {
     if (err) {
       console.error('Error destroying session:', err);
       return res.redirect('/');
     }
-    
+
     // Clear the session cookie
-    res.clearCookie('sid', { 
+    res.clearCookie('sid', {
       path: '/',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production'
     });
-    
+
     // Redirect to home page with success message
     res.redirect('/?loggedOut=true');
   });
@@ -265,19 +330,19 @@ router.get('/logout', (req, res) => {
 // Alternative POST logout route (if you prefer form submission)
 router.post('/logout', (req, res) => {
   const sessionId = req.sessionID;
-  
+
   req.session.destroy((err) => {
     if (err) {
       console.error('Error destroying session:', err);
       return res.redirect('/');
     }
-    
-    res.clearCookie('sid', { 
+
+    res.clearCookie('sid', {
       path: '/',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production'
     });
-    
+
     res.redirect('/?loggedOut=true');
   });
 });
@@ -286,15 +351,15 @@ router.get("/", async (req, res) => {
   try {
     const threads = await db_threads.getAllThreads();
     const loggedOut = req.query.loggedOut === 'true';
-    
-    res.render("index", { 
+
+    res.render("index", {
       threads,
       error: req.session.error,
       success: loggedOut ? 'You have been logged out successfully.' : req.session.success
     });
   } catch (error) {
     console.error("Error loading main page:", error);
-    res.render("index", { 
+    res.render("index", {
       threads: [],
       error: "Failed to load threads",
       success: null

@@ -97,35 +97,13 @@ function displayThread(thread) {
                         </p>
                     </div>`
         }
-
-                <!-- Comments List -->
-                <div id="commentsList" class="space-y-4">
-                    ${thread.comments.map(comment => `
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <div class="flex items-center justify-between mb-2">
-                                <div class="flex items-center text-sm text-gray-500">
-                                    <span>by <strong>${comment.username}</strong></span>
-                                    <span class="mx-2">•</span>
-                                    <time>${new Date(comment.created_at).toLocaleDateString()}</time>
-                                </div>
-                                ${isAuthenticated ?
-                `<button onclick="likeComment(${comment.comment_id})" 
-                                                    class="flex items-center space-x-1 text-sm text-gray-500 hover:text-red-600">
-                                                            <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                                                            </svg>
-                                                            <span>${comment.likes_count}</span>
-                                                        </button>` :
-                `<span class="text-sm text-gray-400">${comment.likes_count} likes</span>`
-            }
-                            </div>
-                            <p class="text-gray-700">${comment.body}</p>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
+        <!-- Comments List (nested) -->
+        <div id="commentsList" class="space-y-4">
+            ${renderCommentsTree(thread.comments || [], isAuthenticated)}
         </div>
-    `;
+  </div>
+</div>
+`;
 
     document.getElementById('threadContent').innerHTML = content;
 }
@@ -194,4 +172,150 @@ function loadThread(threadId) {
             if (content) content.innerHTML = '<div class="text-center py-8 text-red-600">Error loading thread</div>';
             console.error('loadThread error', err);
         });
+}
+
+function renderCommentNode(c, isAuthenticated) {
+    const bodyText = c.display_body; // already 'deleted' if soft-deleted
+    const canReply = isAuthenticated && c.is_deleted === 0;
+    const actions = [];
+
+    if (canReply) {
+        actions.push(`<button class="text-blue-600 text-sm hover:underline" onclick="showReplyForm(${c.comment_id})">Reply</button>`);
+    }
+    if (c.can_edit) {
+        actions.push(`<button class="text-gray-600 text-sm hover:underline" onclick="showEditForm(${c.comment_id}, ${JSON.stringify(c.body ?? '').replace(/"/g, '&quot;')})">Edit</button>`);
+    }
+    if (c.can_delete) {
+        actions.push(`<button class="text-red-600 text-sm hover:underline" onclick="deleteComment(${c.comment_id})">Delete</button>`);
+    }
+
+    const childrenHtml = (c.children || []).map(ch => renderCommentNode(ch, isAuthenticated)).join('');
+
+    return `
+    <div class="bg-gray-50 p-4 rounded-lg">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center text-sm text-gray-500">
+          <span>by <strong>${c.username}</strong></span>
+          <span class="mx-2">•</span>
+          <time>${new Date(c.created_at).toLocaleDateString()}</time>
+        </div>
+        <div class="flex items-center gap-3">${actions.join(' ')}</div>
+      </div>
+  
+        <p class="${c.is_deleted ? 'text-gray-500' : 'text-gray-700'}">
+            ${c.is_deleted ? '<span class="font-semibold italic">deleted</span>' : bodyText}
+        </p>
+  
+      <form class="mt-3 hidden" id="reply-form-${c.comment_id}" onsubmit="submitReply(event, ${c.thread_id}, ${c.comment_id})">
+        <textarea name="comment" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a reply..." required></textarea>
+        <div class="mt-2 flex gap-2">
+          <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Reply</button>
+          <button type="button" class="px-3 py-1.5 border rounded text-sm" onclick="hideReplyForm(${c.comment_id})">Cancel</button>
+        </div>
+      </form>
+  
+      <form class="mt-3 hidden" id="edit-form-${c.comment_id}" onsubmit="submitEdit(event, ${c.comment_id})">
+        <textarea name="comment" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
+        <div class="mt-2 flex gap-2">
+          <button type="submit" class="px-3 py-1.5 bg-gray-800 text-white rounded hover:bg-black text-sm">Save</button>
+          <button type="button" class="px-3 py-1.5 border rounded text-sm" onclick="hideEditForm(${c.comment_id})">Cancel</button>
+        </div>
+      </form>
+  
+      <div class="ml-4 mt-4 space-y-4">
+        ${childrenHtml}
+      </div>
+    </div>`;
+}
+
+function renderCommentsTree(comments, isAuthenticated) {
+    return comments.map(c => renderCommentNode(c, isAuthenticated)).join('');
+}
+
+function showReplyForm(id) { const f = document.getElementById(`reply-form-${id}`); if (f) f.classList.remove('hidden'); }
+function hideReplyForm(id) { const f = document.getElementById(`reply-form-${id}`); if (f) f.classList.add('hidden'); }
+
+function showEditForm(id, currentBody) {
+    const f = document.getElementById(`edit-form-${id}`);
+    if (f) {
+        f.classList.remove('hidden');
+        const ta = f.querySelector('textarea[name="comment"]');
+        if (ta) ta.value = currentBody || '';
+    }
+}
+function hideEditForm(id) { const f = document.getElementById(`edit-form-${id}`); if (f) f.classList.add('hidden'); }
+
+async function submitReply(e, threadId, parentId) {
+    e.preventDefault();
+    const form = e.target;
+    const comment = form.querySelector('textarea[name="comment"]').value;
+    try {
+        const r = await fetch(`/api/threads/${threadId}/comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comment, parent_comment_id: parentId })
+        });
+        const data = await r.json();
+        if (data.success) {
+            loadThread(threadId); // reload to refresh tree
+        }
+    } catch { console.error('submitReply error', err); }
+}
+
+async function submitEdit(e, commentId) {
+    e.preventDefault();
+    const form = e.target;
+    const body = form.querySelector('textarea[name="comment"]').value;
+    try {
+        const r = await fetch(`/api/comments/${commentId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ body })
+        });
+        const data = await r.json();
+        if (data.success) {
+            // Find current thread id from container
+            const container = document.querySelector('.thread-detail');
+            const threadId = container?.getAttribute('data-thread-id');
+            if (threadId) loadThread(threadId);
+        }
+    } catch { console.error('submitEdit error', err); }
+}
+
+async function deleteComment(commentId) {
+    if (!confirm('Delete this comment?')) return;
+    try {
+        const r = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
+        const data = await r.json();
+        if (data.success) {
+            const container = document.querySelector('.thread-detail');
+            const threadId = container?.getAttribute('data-thread-id');
+            if (threadId) loadThread(threadId);
+        }
+    } catch { console.error('deleteComment error', err); }
+}
+
+async function addComment(e, threadId) {
+    e.preventDefault();
+    const form = e.target;
+    const ta = form.querySelector('textarea[name="comment"]');
+    const comment = (ta?.value || '').trim();
+    if (!comment) return;
+
+    try {
+        const r = await fetch(`/api/threads/${threadId}/comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comment }) // top-level comment (no parent_comment_id)
+        });
+        const data = await r.json();
+        if (data.success) {
+            ta.value = '';
+            loadThread(threadId); // refresh comments
+        } else {
+            console.error('addComment failed', data.error);
+        }
+    } catch (err) {
+        console.error('addComment error', err);
+    }
 }
