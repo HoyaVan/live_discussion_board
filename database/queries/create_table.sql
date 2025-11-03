@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS comments (
   body               TEXT NOT NULL,
   path               JSON NOT NULL DEFAULT (JSON_ARRAY()),
   depth              INT UNSIGNED NOT NULL DEFAULT 0,
+  is_deleted         TINYINT(1) NOT NULL DEFAULT 0,
   likes_count        BIGINT UNSIGNED NOT NULL DEFAULT 0,
   created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -85,6 +86,3 @@ CREATE TABLE IF NOT EXISTS thread_views (
     FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-ALTER TABLE comments
-  ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0 AFTER depth;

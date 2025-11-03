@@ -170,26 +170,38 @@ router.get("/profile", authRequired, async (req, res) => {
 router.delete('/api/comments/:id', authRequired, async (req, res) => {
   try {
     const commentId = Number(req.params.id);
+    const body = (req.body?.body || '').trim();
+    if (!body) return res.status(400).json({ success: false, error: 'Body is required' });
+
     const userId = req.session.user.user_id;
 
+    // Who is allowed?
     const meta = await db_comments.getCommentWithThreadAuthor(commentId);
-    if (!meta) return res.json({ success: false, error: 'Not found' });
+    if (!meta) return res.status(404).json({ success: false, error: 'Not found' });
 
     const isAuthor = userId === meta.comment_author_id;
     const isThreadOwner = userId === meta.thread_author_id;
-
+    if (!isAuthor && !isThreadOwner) {
+      return res.status(403).json({
+        success: false,
+        error: 'You can only edit your own comment or comments in threads you own.'
+      });
+    }
+    // Perform edit (use existing util which checks author; allow owner path as well)
     let ok = false;
     if (isAuthor) {
-      ok = await db_comments.softDeleteComment({ comment_id: commentId, author_id: userId });
-    } else if (isThreadOwner) {
-      ok = await db_comments.softDeleteCommentAsThreadAuthor({ comment_id: commentId });
+      ok = await db_comments.editComment({ comment_id: commentId, author_id: userId, body });
     } else {
-      return res.json({ success: false, error: 'Forbidden' });
+      // thread owner edit path (no author check)
+      ok = await db_comments.editCommentAsThreadAuthor
+        ? await db_comments.editCommentAsThreadAuthor({ comment_id: commentId, body })
+        : await db_comments.softDeleteCommentAsThreadAuthor({ comment_id: commentId }) && false; // fallback if not implemented
     }
 
-    res.json({ success: ok });
+    if (!ok) return res.status(409).json({ success: false, error: 'Edit failed' });
+    return res.json({ success: true });
   } catch (e) {
-    res.json({ success: false, error: e.message });
+    return res.status(500).json({ success: false, error: e.message });
   }
 });
 
