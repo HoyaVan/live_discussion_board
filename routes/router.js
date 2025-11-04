@@ -5,6 +5,9 @@ const db_threads = include('database/utils/threads');
 const db_comments = include('database/utils/comments');
 const db_likes = include('database/utils/likes');
 const validation = include('auth/validation');
+const multer = require('multer');
+const streamifier = require('streamifier');
+const cloudinary = include('database/utils/cloudinary');
 
 require("dotenv").config();
 
@@ -17,12 +20,22 @@ const authRequired = (req, res, next) => {
   return res.redirect("/login");
 };
 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
+  fileFilter: (_req, file, cb) => {
+    const ok = ['image/png','image/jpeg','image/webp','image/gif','image/avif'].includes(file.mimetype);
+    cb(ok ? null : new Error('Invalid file type'), ok);
+  }
+});
+
 // expose common locals for all views
 router.use((req, res, next) => {
   res.locals.authenticated = !!req.session.user;
   res.locals.username = req.session.user?.username || null;
-  // optional: keep a default displayName so EJS never crashes
   res.locals.displayName = res.locals.username;
+  res.locals.avatar_url = req.session.user?.avatar_url || process.env.DEFAULT_AVATAR_URL || null;
+  res.locals.default_avatar_url = process.env.DEFAULT_AVATAR_URL || '/images/default-avatar.png'; // ← add this
   next();
 });
 
@@ -53,8 +66,14 @@ router.post('/submitLogin', async (req, res) => {
     }
 
     // set session
-    req.session.user = { user_id: user.user_id, username: user.username, email: user.email };
-    req.session.cookie.maxAge = expireTime;
+    req.session.user = { 
+    user_id: user.user_id, 
+    username: user.username, 
+    email: user.email,
+    avatar_url: user.avatar_url || process.env.DEFAULT_AVATAR_URL || null
+  };
+  req.session.cookie.maxAge = expireTime;
+
 
     // >>> go to profile (not /loggedin)
     return res.redirect("/profile");
@@ -94,8 +113,14 @@ router.post("/submitSignup", async (req, res) => {
     }
 
     // Optional: log them in right away
-    req.session.user = { user_id: null, username, email }; // you can fetch ID if needed
-    req.session.cookie.maxAge = expireTime;
+    req.session.user = { 
+    user_id: null, 
+    username, 
+    email, 
+    avatar_url: process.env.DEFAULT_AVATAR_URL || null 
+  };
+  req.session.cookie.maxAge = expireTime;
+
 
     return res.redirect("/profile");
   } catch (error) {
@@ -163,6 +188,110 @@ router.get("/profile", authRequired, async (req, res) => {
       username: req.session.user.username,
       threads: []
     });
+  }
+});
+
+// Account page
+router.get('/account', authRequired, (req, res) => {
+  res.render('account', {
+    username: req.session.user.username,
+    email: req.session.user.email,
+    avatar_url: req.session.user.avatar_url || process.env.DEFAULT_AVATAR_URL || null
+  });
+});
+
+// Update username
+router.post('/account/username', authRequired, async (req, res) => {
+  try {
+    const newUsername = (req.body.username || '').trim();
+    if (!newUsername) return res.redirect('/account');
+
+    const ok = await db_users.updateUsername({ user_id: req.session.user.user_id, username: newUsername });
+    if (ok) req.session.user.username = newUsername;
+    return res.redirect('/account');
+  } catch (e) {
+    console.error('update username', e);
+    return res.redirect('/account');
+  }
+});
+
+// Delete account (hard delete; make sure FKs are ON DELETE CASCADE or handle deletes in utils)
+router.post('/account/delete', authRequired, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+
+    // optionally remove avatar from Cloudinary
+    try {
+      const row = await db_users.getUser({ email: req.session.user.email });
+      if (row?.avatar_pid) {
+        const cloudinary = include('database/utils/cloudinary');
+        await cloudinary.uploader.destroy(row.avatar_pid);
+      }
+    } catch (_) {}
+
+    const ok = await db_users.deleteUser({ user_id: userId });
+
+    req.session.destroy(() => {
+      res.clearCookie('sid', { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+      res.redirect('/?loggedOut=true');
+    });
+  } catch (e) {
+    console.error('delete account', e);
+    return res.redirect('/account');
+  }
+});
+
+router.post('/profile/avatar', authRequired, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.redirect('/profile');
+
+    const userId = req.session.user.user_id;
+    const userRow = await db_users.getUser({ email: req.session.user.email });
+    const prevPid = userRow?.avatar_pid || null;
+
+    const publicId = `avatars/user_${userId}_${Date.now()}`;
+    const cldOpts = {
+      folder: 'avatars',
+      public_id: publicId,
+      transformation: [{ width: 256, height: 256, crop: 'fill', gravity: 'face' }]
+    };
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(cldOpts, (err, resu) => err ? reject(err) : resolve(resu));
+      streamifier.createReadStream(req.file.buffer).pipe(stream);
+    });
+
+    if (prevPid) {
+      try { await cloudinary.uploader.destroy(prevPid); } catch (_) {}
+    }
+
+    await db_users.setUserAvatar({ user_id: userId, avatar_url: result.secure_url, avatar_pid: result.public_id });
+    req.session.user.avatar_url = result.secure_url;
+    // keep username/email in session; refresh nothing else
+    return res.redirect('/profile');
+  } catch (e) {
+    console.error('avatar upload', e);
+    req.session.error = 'Avatar upload failed.';
+    return res.redirect('/profile');
+  }
+});
+
+router.post('/profile/avatar/reset', authRequired, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const userRow = await db_users.getUser({ email: req.session.user.email });
+    const prevPid = userRow?.avatar_pid || null;
+
+    if (prevPid) {
+      try { await cloudinary.uploader.destroy(prevPid); } catch (_) {}
+    }
+    await db_users.resetUserAvatar({ user_id: userId });
+    req.session.user.avatar_url = process.env.DEFAULT_AVATAR_URL || null;
+    return res.redirect('/profile');
+  } catch (e) {
+    console.error('avatar reset', e);
+    req.session.error = 'Could not reset avatar.';
+    return res.redirect('/profile');
   }
 });
 

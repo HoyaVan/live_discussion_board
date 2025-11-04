@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Account</title>
+  <link rel="stylesheet" href="/output.css"/>
+</head>
+<body class="min-h-screen bg-gray-50 flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white border-b sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <h1 class="text-xl font-semibold text-gray-900">Account Settings</h1>
+      <a href="/profile"
+         class="inline-flex items-center gap-2 text-gray-600 hover:text-blue-600 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        <span class="text-sm font-medium">Back to Profile</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main class="flex-grow max-w-5xl mx-auto w-full px-6 py-12 space-y-10">
+
+    <!-- Avatar Section -->
+    <section class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-8">
+      <div class="flex items-center gap-5">
+        <img
+          src="<%= (typeof avatar_url !== 'undefined' && avatar_url) ? avatar_url : (process.env.DEFAULT_AVATAR_URL || '/images/default-avatar.png') %>"
+          alt="Avatar"
+          class="h-16 w-16 rounded-full object-cover ring-2 ring-gray-200"
+        />
+        <div>
+          <p class="text-sm text-gray-500">Logged in as</p>
+          <p class="font-medium text-gray-900"><%= username %> · <%= email %></p>
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-wrap items-center gap-4">
+        <!-- Upload new avatar -->
+        <form action="/profile/avatar" method="post" enctype="multipart/form-data" class="flex items-center gap-3">
+          <input type="file" name="avatar" accept="image/*"
+                 class="text-sm file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0
+                        file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 transition" required />
+          <button type="submit"
+                  class="px-4 py-2 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 transition">
+            Upload new avatar
+          </button>
+        </form>
+
+        <!-- Reset avatar -->
+        <form action="/profile/avatar/reset" method="post" class="inline">
+          <button type="submit"
+                  class="px-4 py-2 rounded-md ring-1 ring-gray-300 text-sm text-gray-700 hover:bg-gray-100 transition">
+            Reset to default
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Edit Profile Section -->
+    <section class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Edit Profile</h2>
+      <form action="/account/username" method="post" class="flex flex-wrap items-center gap-4">
+        <input
+          type="text"
+          name="username"
+          value="<%= username %>"
+          class="w-72 rounded-md border-0 ring-1 ring-inset ring-gray-300 px-3 py-2
+                 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
+          required
+        />
+        <button type="submit"
+                class="px-4 py-2 rounded-md bg-gray-900 text-white text-sm hover:bg-black transition">
+          Save Changes
+        </button>
+      </form>
+    </section>
+
+    <!-- Danger Zone -->
+    <section class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-8">
+      <h2 class="text-lg font-semibold text-red-600 mb-2">Danger Zone</h2>
+      <p class="text-sm text-gray-600 mb-4">Deleting your account is <strong>permanent</strong> and cannot be undone.</p>
+      <form action="/account/delete" method="post"
+            onsubmit="return confirm('Are you sure you want to delete your account? This cannot be undone.');">
+        <button type="submit"
+                class="px-4 py-2 rounded-md bg-red-500 text-white text-sm hover:bg-red-600 transition">
+          Delete Account
+        </button>
+      </form>
+    </section>
+  </main>
+
+  <%- include('templates/footer') %>
+</body>
+</html>
