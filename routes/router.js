@@ -296,7 +296,7 @@ router.post('/profile/avatar/reset', authRequired, async (req, res) => {
 });
 
 // Edit comment (author only)
-router.delete('/api/comments/:id', authRequired, async (req, res) => {
+router.put('/api/comments/:id', authRequired, async (req, res) => {
   try {
     const commentId = Number(req.params.id);
     const body = (req.body?.body || '').trim();
@@ -308,8 +308,8 @@ router.delete('/api/comments/:id', authRequired, async (req, res) => {
     const meta = await db_comments.getCommentWithThreadAuthor(commentId);
     if (!meta) return res.status(404).json({ success: false, error: 'Not found' });
 
-    const isAuthor = userId === meta.comment_author_id;
-    const isThreadOwner = userId === meta.thread_author_id;
+    const isAuthor = Number(userId) === Number(meta.comment_author_id);
+    const isThreadOwner = Number(userId) === Number(meta.thread_author_id);
     if (!isAuthor && !isThreadOwner) {
       return res.status(403).json({
         success: false,
@@ -334,13 +334,26 @@ router.delete('/api/comments/:id', authRequired, async (req, res) => {
   }
 });
 
-// Soft-delete comment (author only)
 router.delete('/api/comments/:id', authRequired, async (req, res) => {
   try {
-    const commentId = req.params.id;
+    const commentId = Number(req.params.id);
     const userId = req.session.user.user_id;
 
-    const ok = await db_comments.softDeleteComment({ comment_id: commentId, author_id: userId });
+    const meta = await db_comments.getCommentWithThreadAuthor(commentId);
+    if (!meta) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const isAuthor = Number(userId) === Number(meta.comment_author_id);
+    const isThreadOwner = Number(userId) === Number(meta.thread_author_id);
+
+    let ok = false;
+    if (isAuthor) {
+      ok = await db_comments.softDeleteComment({ comment_id: commentId, author_id: userId });
+    } else if (isThreadOwner) {
+      ok = await db_comments.softDeleteCommentAsThreadAuthor({ comment_id: commentId });
+    } else {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+
     res.json({ success: ok });
   } catch (e) {
     res.json({ success: false, error: e.message });
@@ -361,8 +374,8 @@ router.get('/api/threads/:id', async (req, res) => {
     // Add permissions and display text
     const enriched = commentsRaw.map(c => ({
       ...c,
-      can_edit: !!userId && userId === c.author_id && c.is_deleted === 0,
-      can_delete: !!userId && (userId === c.author_id || userId === thread.author_id) && c.is_deleted === 0,
+      can_edit: !!userId && Number(userId) === Number(c.author_id) && c.is_deleted === 0,
+      can_delete: !!userId && (Number(userId) === Number(c.author_id) || Number(userId) === Number(thread.author_id)) && c.is_deleted === 0,
       display_body: c.is_deleted ? 'deleted' : c.body
     }));
 
