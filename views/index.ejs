@@ -15,95 +15,85 @@
 
 <body class="min-h-screen bg-gray-50 flex flex-col" data-authenticated="<%= locals.authenticated %>">
     <header class="bg-white border-b">
-        <div class="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
-  <h1 class="text-2xl font-semibold">
-    <a href="/" class="text-blue-600 hover:text-blue-800">Discussion Platform</a>
-  </h1>
+  <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+    
+    <!-- Left: Site Title -->
+    <h1 class="text-xl font-semibold text-blue-600 hover:text-blue-800 whitespace-nowrap">
+      <a href="/">Discussion Platform</a>
+    </h1>
 
-  <% if (locals.authenticated) { %>
-    <div class="flex items-center space-x-3">
-
-      <!-- Upload -->
-      <a
-        href="/upload"
-        class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition"
-        title="New Thread"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" class="w-5 h-5"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 5v14M5 12h14"/>
-        </svg>
-      </a>
-
-      <!-- Profile -->
-      <a
-        href="/profile"
-        class="h-10 w-10 flex items-center justify-center rounded-full bg-gray-800 text-white hover:bg-black transition"
-        title="Profile"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-             class="w-5 h-5">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 14c4.418 0 8-1.79 8-4s-3.582-4-8-4-8 1.79-8 4 3.582 4 8 4z"/>
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 14v7m-4-7a4 4 0 018 0"/>
-        </svg>
-      </a>
-
-      <!-- Logout -->
-      <form action="/logout" method="post" class="inline">
+    <!-- Center: Search Bar -->
+    <div class="flex-1 flex justify-center">
+      <form id="searchForm" class="flex items-center gap-2 w-full max-w-md" onsubmit="return submitSearch(event)">
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Search threads & comments…"
+          class="w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 px-3 py-2 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
+        />
         <button
           type="submit"
-          class="h-10 w-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition"
-          title="Log Out"
+          class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-               viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-               class="w-5 h-5">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 12H9m9 0l-3 3m3-3l-3-3" />
-          </svg>
+          Search
         </button>
       </form>
-
     </div>
 
+    <!-- Right: Auth buttons -->
+<div class="flex items-center gap-3 ml-4">
+  <% if (locals.authenticated) { %>
+    <!-- Upload -->
+    <a
+      href="/upload"
+      title="New Thread"
+      class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition ring-2 ring-gray-200"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round"
+           class="w-5 h-5">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    </a>
+
+    <!-- Profile Avatar -->
+    <a
+      href="/profile"
+      class="h-10 w-10 flex items-center justify-center rounded-full overflow-hidden ring-2 ring-gray-200 hover:ring-blue-400 transition"
+      title="Profile"
+    >
+      <img
+        src="<%= avatar_url %>"
+        alt="Profile"
+        class="h-full w-full object-cover rounded-full"
+      />
+    </a>
+
+    <!-- Logout -->
+    <form action="/logout" method="post">
+      <button
+        type="submit"
+        title="Log Out"
+        class="h-10 w-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition ring-2 ring-gray-200"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+             class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 12H9m9 0l-3 3m3-3l-3-3" />
+        </svg>
+      </button>
+    </form>
   <% } else { %>
-    <div class="flex items-center space-x-3">
-      <!-- Log In -->
-      <a
-        href="/login"
-        class="h-10 w-10 flex items-center justify-center rounded-full bg-green-600 text-white hover:bg-green-700 transition"
-        title="Log In"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-             class="w-5 h-5">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M9 12h9m0 0l-3 3m3-3l-3-3" />
-        </svg>
-      </a>
-
-      <!-- Sign Up -->
-      <a
-        href="/signup"
-        class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
-        title="Sign Up"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-             class="w-5 h-5">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 4v16m8-8H4" />
-        </svg>
-      </a>
-    </div>
+    <a href="/login"
+       class="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition">Log In</a>
+    <a href="/signup"
+       class="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">Sign Up</a>
   <% } %>
 </div>
-
-    </header>
+  </div>
+</header>
 
     <% if (error) { %>
         <div id="error-popup" class="fixed bottom-4 right-4 z-50 pointer-events-auto animate-slide-in">
@@ -126,6 +116,23 @@
     <% } %>
 
     <main class="flex-1 pb-20">
+        <!-- Search Results Panel -->
+<section id="searchResults" class="max-w-xl mx-auto px-4 mt-6 hidden">
+  <div class="rounded-lg bg-white ring-1 ring-gray-200 p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-gray-700">
+        Results for “<span id="searchQuery"></span>”
+      </h2>
+      <button
+        class="text-xs text-gray-500 hover:text-gray-700"
+        onclick="clearSearch()"
+      >
+        Clear
+      </button>
+    </div>
+    <div id="searchList" class="space-y-3"></div>
+  </div>
+</section>
         <!-- Threads Feed -->
         <div style="width: 100%;">
             <div id="feed" style="width: 45%; min-width: 340px; max-width: 640px; margin: 0 auto; padding-left: 1rem; padding-right: 1rem;">
@@ -264,5 +271,65 @@
 
     <!-- External JavaScript -->
     <script src="/js/threadModal.js"></script>
+   <script>
+async function submitSearch(e) {
+  e.preventDefault();
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) return false;
+
+  const r = await fetch(`/search?q=${encodeURIComponent(q)}`);
+  const data = await r.json();
+
+  if (!data.success) {
+    alert('Search failed');
+    return false;
+  }
+
+  // Render results (quick inline example)
+  const list = (data.results || []).map(row => {
+    if (row.kind === 'thread') {
+      return `
+        <article class="p-4 bg-white rounded-md ring-1 ring-gray-200">
+          <div class="flex items-center gap-3 mb-2">
+            <img src="${row.author_avatar_url || window.DEFAULT_AVATAR_URL}" class="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200" />
+            <div>
+              <div class="text-sm text-gray-500">Thread by <strong>${row.username}</strong></div>
+              <a href="javascript:loadThread(${row.thread_id})" class="font-semibold text-gray-900 hover:text-blue-600">${row.title}</a>
+            </div>
+          </div>
+          <p class="text-sm text-gray-700 line-clamp-3">${row.description || ''}</p>
+        </article>`;
+    } else {
+      return `
+        <article class="p-4 bg-white rounded-md ring-1 ring-gray-200">
+          <div class="flex items-center gap-3 mb-2">
+            <img src="${row.commenter_avatar_url || window.DEFAULT_AVATAR_URL}" class="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200" />
+            <div>
+              <div class="text-sm text-gray-500">Comment by <strong>${row.comment_username}</strong> on</div>
+              <a href="javascript:loadThread(${row.thread_id})" class="font-semibold text-gray-900 hover:text-blue-600">${row.thread_title}</a>
+            </div>
+          </div>
+          <p class="text-sm text-gray-700 line-clamp-3">${row.description || ''}</p>
+        </article>`;
+    }
+  }).join('');
+
+  // You can render to a dedicated container or reuse your modal:
+  const content = `
+    <div class="space-y-3">${list || '<p class="text-gray-500">No matches.</p>'}</div>
+  `;
+  // Show results in the modal you already have
+  openThreadModal();
+  document.getElementById('threadContent').innerHTML = `
+    <div class="sticky top-0 z-10 bg-white px-3 py-2 border-b text-center font-semibold">
+      Search results for “${q}”
+    </div>
+    <div class="mt-3">${content}</div>
+  `;
+  return false;
+}
+</script>
+
+
 </body>
 </html>

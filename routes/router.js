@@ -8,7 +8,7 @@ const validation = include('auth/validation');
 const multer = require('multer');
 const streamifier = require('streamifier');
 const cloudinary = include('database/utils/cloudinary');
-
+const db_search = include('database/utils/search');
 require("dotenv").config();
 
 const expireTime = 1 * 60 * 60 * 1000;
@@ -170,6 +170,21 @@ router.post('/threads/create', authRequired, async (req, res) => {
     });
   }
 });
+
+
+router.get('/search', async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (!q) return res.json({ success: true, results: [] });
+
+    const results = await db_search.searchThreadsAndComments(q);
+    res.json({ success: true, results });
+  } catch (e) {
+    console.error('search error', e);
+    res.json({ success: false, error: 'Search failed' });
+  }
+});
+
 
 router.get("/profile", authRequired, async (req, res) => {
   try {
