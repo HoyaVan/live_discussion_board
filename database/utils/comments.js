@@ -105,24 +105,37 @@ async function softDeleteComment({ comment_id, author_id }) {
 }
 
 // Flat fetch (includes needed fields). You’ll build the tree on the server or client.
+// Flat fetch (includes needed fields). You’ll build the tree on the server or client.
 async function getCommentsByThread(threadId) {
-    const sql = `
-      SELECT c.comment_id, c.thread_id, c.author_id, c.parent_comment_id, c.body,
-             c.likes_count, c.created_at, c.updated_at, c.is_deleted, c.path, c.depth,
-             u.username
-      FROM comments c
-      JOIN users u ON c.author_id = u.user_id
-      WHERE c.thread_id = ?
-      ORDER BY JSON_LENGTH(c.path) ASC, c.created_at ASC
-    `;
-    try {
-        const [rows] = await mysqlPool.execute(sql, [threadId]);
-        return rows;
-    } catch (e) {
-        console.log('Error getting comments:', e);
-        return [];
-    }
+  const sql = `
+    SELECT
+      c.comment_id,
+      c.thread_id,
+      c.author_id,
+      c.parent_comment_id,
+      c.body,
+      c.likes_count,
+      c.created_at,
+      c.updated_at,
+      c.is_deleted,
+      c.path,
+      c.depth,
+      u.username,
+      u.avatar_url AS avatar_url   -- 👈 add this line
+    FROM comments c
+    JOIN users u ON c.author_id = u.user_id
+    WHERE c.thread_id = ?
+    ORDER BY JSON_LENGTH(c.path) ASC, c.created_at ASC
+  `;
+  try {
+    const [rows] = await mysqlPool.execute(sql, [threadId]);
+    return rows;
+  } catch (e) {
+    console.log('Error getting comments:', e);
+    return [];
+  }
 }
+
 
 async function getCommentWithThreadAuthor(comment_id) {
     try {

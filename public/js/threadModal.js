@@ -19,11 +19,18 @@ function displayThread(thread) {
             <div class="border-b pb-4 mb-6">
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">${thread.title}</h1>
                 <div class="flex items-center justify-between">
+                    // Inside the header HTML (in displayThread)
                     <div class="flex items-center text-sm text-gray-500">
-                        <span>by <strong>${thread.username}</strong></span>
-                        <span class="mx-2">•</span>
-                        <time>${new Date(thread.created_at).toLocaleDateString()}</time>
+                    <img
+                        src="${thread.author_avatar_url || (window.DEFAULT_AVATAR_URL || '')}"
+                        alt="${thread.username}"
+                        class="h-6 w-6 rounded-full object-cover ring-1 ring-gray-200 mr-2"
+                    />
+                    <span>by <strong>${thread.username}</strong></span>
+                    <span class="mx-2">•</span>
+                    <time>${new Date(thread.created_at).toLocaleDateString()}</time>
                     </div>
+
                     <div class="flex items-center space-x-4 text-sm text-gray-500">
                         ${thread.views > 0 ? `
                         <span class="flex items-center">
@@ -175,58 +182,66 @@ function loadThread(threadId) {
 }
 
 function renderCommentNode(c, isAuthenticated) {
-    const bodyText = c.display_body; // already 'deleted' if soft-deleted
-    const canReply = isAuthenticated && c.is_deleted === 0;
-    const actions = [];
+  const avatarSrc = c.avatar_url || window.DEFAULT_AVATAR_URL || '/images/default-avatar.png';
+  const bodyText = c.display_body; // already 'deleted' if soft-deleted
+  const canReply = isAuthenticated && c.is_deleted === 0;
+  const actions = [];
 
-    if (canReply) {
-        actions.push(`<button class="text-blue-600 text-sm hover:underline" onclick="showReplyForm(${c.comment_id})">Reply</button>`);
-    }
-    if (c.can_edit) {
-        actions.push(`<button class="text-gray-600 text-sm hover:underline" onclick="showEditForm(${c.comment_id}, ${JSON.stringify(c.body ?? '').replace(/"/g, '&quot;')})">Edit</button>`);
-    }
-    if (c.can_delete) {
-        actions.push(`<button class="text-red-600 text-sm hover:underline" onclick="deleteComment(${c.comment_id})">Delete</button>`);
-    }
+  if (canReply) {
+    actions.push(`<button class="text-blue-600 text-sm hover:underline" onclick="showReplyForm(${c.comment_id})">Reply</button>`);
+  }
+  if (c.can_edit) {
+    actions.push(`<button class="text-gray-600 text-sm hover:underline" onclick="showEditForm(${c.comment_id}, ${JSON.stringify(c.body ?? '').replace(/"/g, '&quot;')})">Edit</button>`);
+  }
+  if (c.can_delete) {
+    actions.push(`<button class="text-red-600 text-sm hover:underline" onclick="deleteComment(${c.comment_id})">Delete</button>`);
+  }
 
-    const childrenHtml = (c.children || []).map(ch => renderCommentNode(ch, isAuthenticated)).join('');
+  const childrenHtml = (c.children || []).map(ch => renderCommentNode(ch, isAuthenticated)).join('');
 
-    return `
-    <div class="bg-gray-50 p-4 rounded-lg">
-      <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center text-sm text-gray-500">
-          <span>by <strong>${c.username}</strong></span>
-          <span class="mx-2">•</span>
-          <time>${new Date(c.created_at).toLocaleDateString()}</time>
+  return `
+  <div class="bg-gray-50 p-4 rounded-lg">
+    <div class="flex items-start gap-3 mb-2">
+      <img src="${avatarSrc}" alt="${c.username}" class="w-8 h-8 rounded-full object-cover ring-1 ring-gray-300" />
+      <div class="flex-1">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center text-sm text-gray-500">
+            <span class="font-medium text-gray-900">${c.username}</span>
+            <span class="mx-2">•</span>
+            <time>${new Date(c.created_at).toLocaleDateString()}</time>
+          </div>
+          <div class="flex items-center gap-3">${actions.join(' ')}</div>
         </div>
-        <div class="flex items-center gap-3">${actions.join(' ')}</div>
-      </div>
   
-        <p class="${c.is_deleted ? 'text-gray-500' : 'text-gray-700'}">
-            ${c.is_deleted ? '<span class="font-semibold italic">deleted</span>' : bodyText}
+        <p class="${c.is_deleted ? 'text-gray-500 italic' : 'text-gray-700'} mt-1">
+          ${c.is_deleted ? '<span class="font-semibold">deleted</span>' : bodyText}
         </p>
   
-      <form class="mt-3 hidden" id="reply-form-${c.comment_id}" onsubmit="submitReply(event, ${c.thread_id}, ${c.comment_id})">
-        <textarea name="comment" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a reply..." required></textarea>
-        <div class="mt-2 flex gap-2">
-          <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Reply</button>
-          <button type="button" class="px-3 py-1.5 border rounded text-sm" onclick="hideReplyForm(${c.comment_id})">Cancel</button>
-        </div>
-      </form>
+        <form class="mt-3 hidden" id="reply-form-${c.comment_id}" onsubmit="submitReply(event, ${c.thread_id}, ${c.comment_id})">
+          <textarea name="comment" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a reply..." required></textarea>
+          <div class="mt-2 flex gap-2">
+            <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Reply</button>
+            <button type="button" class="px-3 py-1.5 border rounded text-sm" onclick="hideReplyForm(${c.comment_id})">Cancel</button>
+          </div>
+        </form>
   
-      <form class="mt-3 hidden" id="edit-form-${c.comment_id}" onsubmit="submitEdit(event, ${c.comment_id})">
-        <textarea name="comment" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
-        <div class="mt-2 flex gap-2">
-          <button type="submit" class="px-3 py-1.5 bg-gray-800 text-white rounded hover:bg-black text-sm">Save</button>
-          <button type="button" class="px-3 py-1.5 border rounded text-sm" onclick="hideEditForm(${c.comment_id})">Cancel</button>
-        </div>
-      </form>
-  
-      <div class="ml-4 mt-4 space-y-4">
-        ${childrenHtml}
+        <form class="mt-3 hidden" id="edit-form-${c.comment_id}" onsubmit="submitEdit(event, ${c.comment_id})">
+          <textarea name="comment" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
+          <div class="mt-2 flex gap-2">
+            <button type="submit" class="px-3 py-1.5 bg-gray-800 text-white rounded hover:bg-black text-sm">Save</button>
+            <button type="button" class="px-3 py-1.5 border rounded text-sm" onclick="hideEditForm(${c.comment_id})">Cancel</button>
+          </div>
+        </form>
       </div>
-    </div>`;
+    </div>
+
+    <!-- Nested replies -->
+    <div class="ml-8 mt-4 space-y-4">
+      ${childrenHtml}
+    </div>
+  </div>`;
 }
+
 
 function renderCommentsTree(comments, isAuthenticated) {
     return comments.map(c => renderCommentNode(c, isAuthenticated)).join('');

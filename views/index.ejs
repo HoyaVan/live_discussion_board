@@ -9,26 +9,100 @@
     <link rel="stylesheet" type="text/css" href="/styles.css" />
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 </head>
+<script>
+  window.DEFAULT_AVATAR_URL = "<%= typeof default_avatar_url !== 'undefined' ? default_avatar_url : '/images/default-avatar.png' %>";
+</script>
 
 <body class="min-h-screen bg-gray-50 flex flex-col" data-authenticated="<%= locals.authenticated %>">
     <header class="bg-white border-b">
         <div class="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
-            <h1 class="text-2xl font-semibold">
-                <a href="/" class="text-blue-600 hover:text-blue-800">Discussion Platform</a>
-            </h1>
-            <% if (locals.authenticated) { %>
-                <div class="space-x-3">
-                    <a href="/upload" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-800 transition-colors">Upload</a>
-                    <a href="/profile" class="px-4 py-2 bg-gray-800 text-white rounded hover:bg-black transition-colors">Profile</a>
-                    <a href="/logout" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">Logout</a>
-                </div>
-            <% } else { %>
-                <div class="space-x-3">
-                    <a href="/login" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">Log In</a>
-                    <a href="/signup" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">Sign Up</a>
-                </div>
-            <% } %>
-        </div>
+  <h1 class="text-2xl font-semibold">
+    <a href="/" class="text-blue-600 hover:text-blue-800">Discussion Platform</a>
+  </h1>
+
+  <% if (locals.authenticated) { %>
+    <div class="flex items-center space-x-3">
+
+      <!-- Upload -->
+      <a
+        href="/upload"
+        class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition"
+        title="New Thread"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" class="w-5 h-5"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </a>
+
+      <!-- Profile -->
+      <a
+        href="/profile"
+        class="h-10 w-10 flex items-center justify-center rounded-full bg-gray-800 text-white hover:bg-black transition"
+        title="Profile"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+             class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 14c4.418 0 8-1.79 8-4s-3.582-4-8-4-8 1.79-8 4 3.582 4 8 4z"/>
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 14v7m-4-7a4 4 0 018 0"/>
+        </svg>
+      </a>
+
+      <!-- Logout -->
+      <form action="/logout" method="post" class="inline">
+        <button
+          type="submit"
+          class="h-10 w-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition"
+          title="Log Out"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+               viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+               class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 12H9m9 0l-3 3m3-3l-3-3" />
+          </svg>
+        </button>
+      </form>
+
+    </div>
+
+  <% } else { %>
+    <div class="flex items-center space-x-3">
+      <!-- Log In -->
+      <a
+        href="/login"
+        class="h-10 w-10 flex items-center justify-center rounded-full bg-green-600 text-white hover:bg-green-700 transition"
+        title="Log In"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+             class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M9 12h9m0 0l-3 3m3-3l-3-3" />
+        </svg>
+      </a>
+
+      <!-- Sign Up -->
+      <a
+        href="/signup"
+        class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
+        title="Sign Up"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+             class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 4v16m8-8H4" />
+        </svg>
+      </a>
+    </div>
+  <% } %>
+</div>
+
     </header>
 
     <% if (error) { %>
@@ -67,12 +141,17 @@
                                             <%= thread.title %>
                                         </h2>
                                         <div class="flex items-center text-sm text-gray-500 mt-1">
+                                            <img
+                                                src="<%= thread.author_avatar_url || default_avatar_url %>"
+                                                alt="<%= thread.username %>"
+                                                class="h-6 w-6 rounded-full object-cover ring-1 ring-gray-200 mr-2"
+                                            />
                                             <span>by <strong><%= thread.username %></strong></span>
                                             <span class="mx-2">•</span>
                                             <time datetime="<%= thread.created_at %>">
                                                 <%= new Date(thread.created_at).toLocaleDateString() %>
                                             </time>
-                                        </div>
+                                            </div>
                                     </div>
 
                                     <div class="ml-4 shrink-0 flex items-center space-x-4 text-sm text-gray-500">
