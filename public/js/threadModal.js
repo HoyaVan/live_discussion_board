@@ -19,7 +19,6 @@ function displayThread(thread) {
             <div class="border-b pb-4 mb-6">
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">${thread.title}</h1>
                 <div class="flex items-center justify-between">
-                    // Inside the header HTML (in displayThread)
                     <div class="flex items-center text-sm text-gray-500">
                     <img
                         src="${thread.author_avatar_url || (window.DEFAULT_AVATAR_URL || '')}"
