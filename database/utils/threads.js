@@ -131,10 +131,91 @@ async function incrementThreadViews(thread_id) {
   }
 }
 
+async function deleteThread({ thread_id, author_id }) {
+  try {
+    const [res] = await mysqlPool.execute(
+      `DELETE FROM threads WHERE thread_id = ? AND author_id = ?`,
+      [thread_id, author_id]
+    );
+    return res.affectedRows > 0;
+  } catch (err) {
+    console.log('Error deleting thread:', err);
+    return false;
+  }
+}
+
+async function incrementUniqueView(thread_id, viewer_key) {
+  try {
+    // record unique view per viewer_key
+    const [r] = await mysqlPool.execute(
+      'INSERT IGNORE INTO thread_views (thread_id, viewer_key) VALUES (?, ?)',
+      [thread_id, viewer_key]
+    );
+    if (r.affectedRows === 1) {
+      await mysqlPool.execute(
+        'UPDATE threads SET views = views + 1 WHERE thread_id = ?',
+        [thread_id]
+      );
+    }
+    return true;
+  } catch (err) {
+    console.log('incrementUniqueView error', err);
+    return false;
+  }
+}
+
+async function countThreadsByAuthor(author_id) {
+  const sql = `SELECT COUNT(*) AS cnt FROM threads WHERE author_id = ?`;
+  try {
+    const [rows] = await mysqlPool.execute(sql, [author_id]);
+    return rows[0]?.cnt || 0;
+  } catch (err) {
+    console.log("Error counting threads by author:", err);
+    return 0;
+  }
+}
+
+async function getThreadsByAuthorPaginated(author_id, limit, offset) {
+  // Coerce and clamp to safe integers, then inline to avoid MySQL binding issues for LIMIT/OFFSET
+  const lim = Math.max(0, parseInt(limit, 10) || 6);
+  const off = Math.max(0, parseInt(offset, 10) || 0);
+
+  const sql = `
+    SELECT
+      t.thread_id,
+      t.author_id,
+      t.title,
+      t.description,
+      t.views,
+      t.likes_count,
+      t.comments_count,
+      t.created_at,
+      t.updated_at,
+      u.username,
+      u.avatar_url AS author_avatar_url
+    FROM threads t
+    JOIN users u ON t.author_id = u.user_id
+    WHERE t.author_id = ?
+    ORDER BY t.created_at DESC
+    LIMIT ${lim} OFFSET ${off}
+  `;
+  try {
+    const [rows] = await mysqlPool.execute(sql, [author_id]);
+    return rows;
+  } catch (err) {
+    console.log("Error getting threads by author (paginated):", err);
+    return [];
+  }
+}
+
 module.exports = {
   createThread,
   getAllThreads,
   getThreadsByAuthor,
   getThreadById,
   incrementThreadViews,
+  deleteThread,
+  incrementUniqueView,
+  countThreadsByAuthor,
+  getThreadsByAuthorPaginated,
 };

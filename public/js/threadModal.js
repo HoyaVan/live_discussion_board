@@ -63,19 +63,23 @@ function displayThread(thread) {
                 
                 <!-- Like Thread Button -->
                 <div class="mt-4">
-                    ${isAuthenticated ?
-            `<button onclick="likeThread(${thread.thread_id})" 
-                                class="flex items-center space-x-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                            </svg>
-                            <span>Like Thread (${thread.likes_count})</span>
-                        </button>` :
+                ${isAuthenticated ?
+            `<button onclick="likeThread(${thread.thread_id})"
+                             class="cursor-pointer flex items-center space-x-2 px-4 py-2 ${thread.user_liked
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-red-100 text-red-700 hover:bg-red-200'
+            } rounded-lg transition-colors">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                      </svg>
+                      <span>${thread.user_liked ? 'Liked' : 'Like Thread'} (${thread.likes_count})</span>
+                    </button>` :
             `<div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                            <p class="text-blue-800 text-sm">
-                                <a href="/login" class="font-medium underline">Sign in</a> to like this thread and participate in discussions.
-                            </p>
-                        </div>`
+                       <p class="text-blue-800 text-sm">
+                         <a href="/login" class="font-medium underline">Sign in</a> to like this thread and participate in discussions.
+                       </p>
+                     </div>`
         }
                 </div>
             </div>
@@ -92,9 +96,9 @@ function displayThread(thread) {
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
                                 placeholder="Write a comment..." required></textarea>
                             <button type="submit" 
-                                class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                                Add Comment
-                            </button>
+                                class="cursor-pointer mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                        Add Comment
+                        </button>
                         </form>
                     </div>` :
             `<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -112,6 +116,7 @@ function displayThread(thread) {
 `;
 
     document.getElementById('threadContent').innerHTML = content;
+    updateProfileCardCounts(thread);
 }
 
 // Add this function to show/hide the small spinner
@@ -148,57 +153,57 @@ function closeThreadModal() {
 function onThreadModalBackdropClick(e) {
     if (e.target && e.target.id === 'threadModal') closeThreadModal();
 }
-// OPEN → FETCH → RENDER
+
+let __loadingThread = false;
 function loadThread(threadId) {
-    // optional: tiny spinner in page
-    showThreadLoadingSpinner();
+  if (__loadingThread) return;              // prevents double fetches
+  __loadingThread = true;
 
-    // open modal immediately
-    openThreadModal();
+  showThreadLoadingSpinner();
+  openThreadModal();
+  const content = document.getElementById('threadContent');
+  if (content) {
+    content.innerHTML =
+      '<div class="flex items-center justify-center py-12"><div class="h-8 w-8 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div></div>';
+  }
 
-    // ensure a visible spinner is inside the modal while loading
-    const content = document.getElementById('threadContent');
-    if (content) {
-        content.innerHTML =
-            '<div class="flex items-center justify-center py-12"><div class="h-8 w-8 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div></div>';
-    }
-
-    fetch(`/api/threads/${threadId}`)
-        .then(r => r.json())
-        .then(data => {
-            hideThreadLoadingSpinner();
-            if (data && data.success) {
-                displayThread(data.thread);
-            } else {
-                if (content) content.innerHTML = '<div class="text-center py-8 text-red-600">Error loading thread</div>';
-            }
-        })
-        .catch(err => {
-            hideThreadLoadingSpinner();
-            if (content) content.innerHTML = '<div class="text-center py-8 text-red-600">Error loading thread</div>';
-            console.error('loadThread error', err);
-        });
+  fetch(`/api/threads/${threadId}`)
+    .then(r => r.json())
+    .then(data => { if (data?.success) displayThread(data.thread); })
+    .finally(() => { hideThreadLoadingSpinner(); __loadingThread = false; });
 }
 
 function renderCommentNode(c, isAuthenticated) {
-  const avatarSrc = c.avatar_url || window.DEFAULT_AVATAR_URL || '/images/default-avatar.png';
-  const bodyText = c.display_body; // already 'deleted' if soft-deleted
-  const canReply = isAuthenticated && c.is_deleted === 0;
-  const actions = [];
+    const avatarSrc = c.avatar_url || window.DEFAULT_AVATAR_URL || '/images/default-avatar.png';
+    const bodyText = c.display_body; // already 'deleted' if soft-deleted
+    const canReply = isAuthenticated && c.is_deleted === 0;
+    const actions = [];
 
-  if (canReply) {
-    actions.push(`<button class="text-blue-600 text-sm hover:underline" onclick="showReplyForm(${c.comment_id})">Reply</button>`);
-  }
-  if (c.can_edit) {
-    actions.push(`<button class="text-gray-600 text-sm hover:underline" onclick="showEditForm(${c.comment_id}, ${JSON.stringify(c.body ?? '').replace(/"/g, '&quot;')})">Edit</button>`);
-  }
-  if (c.can_delete) {
-    actions.push(`<button class="text-red-600 text-sm hover:underline" onclick="deleteComment(${c.comment_id})">Delete</button>`);
-  }
+    if (canReply) {
+        actions.push(`<button class="cursor-pointer text-blue-600 text-sm hover:underline" onclick="showReplyForm(${c.comment_id})">Reply</button>`);
+    }
+    if (c.can_edit) {
+        actions.push(`<button class="cursor-pointer text-gray-600 text-sm hover:underline" onclick="showEditForm(${c.comment_id}, ${JSON.stringify(c.body ?? '').replace(/"/g, '&quot;')})">Edit</button>`);
+    }
+    if (c.can_delete) {
+        actions.push(`<button class="cursor-pointer text-red-600 text-sm hover:underline" onclick="deleteComment(${c.comment_id})">Delete</button>`);
+    }
 
-  const childrenHtml = (c.children || []).map(ch => renderCommentNode(ch, isAuthenticated)).join('');
+    // Like button for comments (text-style, aligned with other action links)
+    if (isAuthenticated && c.is_deleted === 0) {
+        const likeBtn = `
+          <button class="cursor-pointer inline-flex items-center gap-1 text-sm ${c.user_liked ? 'text-rose-600 hover:text-rose-700' : 'text-rose-500 hover:text-rose-600'}" onclick="likeComment(${c.comment_id})">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+            </svg>
+            <span>${c.likes_count}</span>
+          </button>`;
+        actions.push(likeBtn);
+    }
 
-  return `
+    const childrenHtml = (c.children || []).map(ch => renderCommentNode(ch, isAuthenticated)).join('');
+
+    return `
   <div class="bg-gray-50 p-4 rounded-lg">
     <div class="flex items-start gap-3 mb-2">
       <img src="${avatarSrc}" alt="${c.username}" class="w-8 h-8 rounded-full object-cover ring-1 ring-gray-300" />
@@ -219,16 +224,16 @@ function renderCommentNode(c, isAuthenticated) {
         <form class="mt-3 hidden" id="reply-form-${c.comment_id}" onsubmit="submitReply(event, ${c.thread_id}, ${c.comment_id})">
           <textarea name="comment" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a reply..." required></textarea>
           <div class="mt-2 flex gap-2">
-            <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Reply</button>
-            <button type="button" class="px-3 py-1.5 border rounded text-sm" onclick="hideReplyForm(${c.comment_id})">Cancel</button>
+            <button type="submit" class="cursor-pointer px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Reply</button>
+            <button type="button" class="cursor-pointer px-3 py-1.5 border rounded text-sm" onclick="hideReplyForm(${c.comment_id})">Cancel</button>
           </div>
         </form>
   
         <form class="mt-3 hidden" id="edit-form-${c.comment_id}" onsubmit="submitEdit(event, ${c.comment_id})">
           <textarea name="comment" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
           <div class="mt-2 flex gap-2">
-            <button type="submit" class="px-3 py-1.5 bg-gray-800 text-white rounded hover:bg-black text-sm">Save</button>
-            <button type="button" class="px-3 py-1.5 border rounded text-sm" onclick="hideEditForm(${c.comment_id})">Cancel</button>
+            <button type="submit" class="cursor-pointer px-3 py-1.5 bg-gray-800 text-white rounded hover:bg-black text-sm">Save</button>
+            <button type="button" class="cursor-pointer px-3 py-1.5 border rounded text-sm" onclick="hideEditForm(${c.comment_id})">Cancel</button>
           </div>
         </form>
       </div>
@@ -332,4 +337,37 @@ async function addComment(e, threadId) {
     } catch (err) {
         console.error('addComment error', err);
     }
+}
+
+async function likeThread(threadId) {
+    try {
+        const r = await fetch(`/api/threads/${threadId}/like`, { method: 'POST' });
+        if (!r.ok) { console.error('likeThread HTTP', r.status); return; }
+        const data = await r.json();
+        if (data.success) loadThread(threadId); // refresh counts and button color
+    } catch (err) { console.error('likeThread error', err); }
+}
+
+async function likeComment(commentId) {
+    try {
+        const r = await fetch(`/api/comments/${commentId}/like`, { method: 'POST' });
+        if (!r.ok) { console.error('likeComment HTTP', r.status); return; }
+        const data = await r.json();
+        if (data.success) {
+            const container = document.querySelector('.thread-detail');
+            const threadId = container?.getAttribute('data-thread-id');
+            if (threadId) loadThread(threadId);
+        }
+    } catch (err) { console.error('likeComment error', err); }
+}
+
+function updateProfileCardCounts(thread) {
+    const card = document.querySelector(`article[data-thread-id="${thread.thread_id}"]`);
+    if (!card) return;
+    const v = card.querySelector('.js-thread-views');
+    const c = card.querySelector('.js-thread-comments');
+    const l = card.querySelector('.js-thread-likes');
+    if (v) v.textContent = thread.views;
+    if (c) c.textContent = thread.comments_count;
+    if (l) l.textContent = thread.likes_count;
 }

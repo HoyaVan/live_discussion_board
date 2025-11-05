@@ -2,217 +2,173 @@
 <html lang="en" class="h-full">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile</title>
-    <link rel="stylesheet" type="text/css" href="/output.css" />
-    <script src="/js/profile.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile</title>
+  <link rel="stylesheet" type="text/css" href="/output.css" />
+  <script src="/js/profile.js" defer></script>
+  <script src="/js/threadModal.js"></script>
 </head>
 
-<body class="min-h-full bg-gray-50">
-    <header class="bg-white border-b">
-  <div class="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-semibold">
-        Hello, <span class="text-blue-600"><%= displayName %></span>!
-      </h1>
-      <p class="text-gray-500">Welcome to your profile. Manage your posts below.</p>
+<body class="min-h-full bg-gray-50 <%= locals.authenticated ? 'authenticated' : '' %>"
+  data-authenticated="<%= locals.authenticated %>">
+  <header class="bg-white border-b">
+    <div class="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold">
+          Hello, <span class="text-blue-600">
+            <%= displayName %>
+          </span>!
+        </h1>
+        <p class="text-gray-500">Welcome to your profile. Manage your posts below.</p>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <!-- Avatar -->
+        <a href="/account" class="group relative inline-flex items-center">
+          <img src="<%= avatar_url %>" alt="Account"
+            class="h-10 w-10 rounded-full object-cover ring-2 ring-gray-200 hover:ring-blue-400 transition" />
+        </a>
+
+        <!-- Home -->
+        <a href="/"
+          class="h-10 w-10 flex items-center justify-center rounded-full bg-gray-800 text-white hover:bg-black transition"
+          title="Home">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-5 h-5"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />
+          </svg>
+        </a>
+
+        <!-- Log Out -->
+        <form action="/logout" method="post" class="inline">
+          <button type="submit"
+            class="h-10 w-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition"
+            title="Log Out">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+              stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M18 12H9m9 0l-3 3m3-3l-3-3" />
+            </svg>
+          </button>
+        </form>
+      </div>
     </div>
+  </header>
 
-    <div class="flex items-center space-x-3">
-  <!-- Avatar -->
-  <a href="/account" class="group relative inline-flex items-center">
-    <img
-      src="<%= avatar_url %>"
-      alt="Account"
-      class="h-10 w-10 rounded-full object-cover ring-2 ring-gray-200 hover:ring-blue-400 transition"
-    />
-  </a>
+  <main class="max-w-5xl mx-auto px-4 py-8">
+    <!-- Toolbar -->
+    <section class="max-w-5xl mx-auto mb-6">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 class="text-lg font-semibold text-gray-900">Your Threads</h2>
 
-  <!-- Home -->
-  <a
-    href="/"
-    class="h-10 w-10 flex items-center justify-center rounded-full bg-gray-800 text-white hover:bg-black transition"
-    title="Home"
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" class="w-5 h-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>
-    </svg>
-  </a>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
 
-  <!-- Log Out -->
-  <form action="/logout" method="post" class="inline">
-    <button
-      type="submit"
-      class="h-10 w-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition"
-      title="Log Out"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-           stroke-width="2" stroke="currentColor" class="w-5 h-5">
-        <path stroke-linecap="round" stroke-linejoin="round"
-              d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M18 12H9m9 0l-3 3m3-3l-3-3" />
-      </svg>
-    </button>
-  </form>
-</div>
+          <a href="/upload"
+            class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors text-center">
+            + New Thread
+          </a>
+        </div>
+      </div>
+    </section>
 
-  </div>
-</header>
+    <!-- Cards -->
+    <section class="max-w-5xl mx-auto">
+      <% const myThreads=(typeof threads !=='undefined' && threads && threads.length) ? threads : []; %>
 
-
-    <main class="max-w-5xl mx-auto px-4 py-8">
-        <!-- Toolbar -->
-<section class="max-w-5xl mx-auto mb-6">
-  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <h2 class="text-lg font-semibold text-gray-900">Your Threads</h2>
-
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <form action="/profile" method="get" class="flex items-center gap-2">
-        <input
-          type="text"
-          name="q"
-          value="<%= typeof q !== 'undefined' ? q : '' %>"
-          placeholder="Search your threads…"
-          class="w-64 rounded-md border-0 ring-1 ring-inset ring-gray-300 px-3 py-2 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
-        />
-        <select
-          name="status"
-          class="rounded-md border-0 ring-1 ring-inset ring-gray-300 px-3 py-2 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
-        >
-          <option value="">All statuses</option>
-          <option value="published">Published</option>
-          <option value="draft">Draft</option>
-          <option value="archived">Archived</option>
-        </select>
-        <button
-          class="rounded-md bg-gray-800 px-3 py-2 text-sm text-white hover:bg-black transition-colors"
-          type="submit"
-        >
-          Filter
-        </button>
-      </form>
-
-      <a
-        href="/upload"
-        class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors text-center"
-      >
-        + New Thread
-      </a>
-    </div>
-  </div>
-</section>
-
-<!-- Cards -->
-<section class="max-w-5xl mx-auto">
-  <% const myThreads = (typeof threads !== 'undefined' && threads && threads.length) ? threads : []; %>
-
-  <% if (myThreads.length === 0) { %>
-    <div class="rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center">
-      <p class="text-gray-600">No threads yet.</p>
-      <a href="/upload" class="inline-block mt-3 text-blue-600 hover:underline">Create your first thread</a>
-    </div>
-  <% } else { %>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <% myThreads.forEach(t => { %>
-        <article class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-4 flex flex-col">
-          <!-- Title + status/visibility -->
-          <div class="mb-2 flex items-start justify-between gap-3">
-            <h3 class="text-gray-900 font-semibold leading-6">
-              <a href="/threads/<%= t.id %>" class="hover:underline"><%= t.title %></a>
-            </h3>
-            <div class="flex items-center gap-2">
-              <!-- Status badge -->
-              <% if (t.status === 'published') { %>
-                <span class="inline-flex items-center rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-800">Published</span>
-              <% } else if (t.status === 'draft') { %>
-                <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-900">Draft</span>
-              <% } else { %>
-                <span class="inline-flex items-center rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700">Archived</span>
-              <% } %>
-
-              <!-- Visibility badge -->
-              <% if (t.visibility === 'public') { %>
-                <span class="inline-flex items-center rounded-md ring-1 ring-gray-300 px-2 py-1 text-xs text-gray-700">Public</span>
-              <% } else if (t.visibility === 'private') { %>
-                <span class="inline-flex items-center rounded-md ring-1 ring-gray-300 px-2 py-1 text-xs text-gray-700">Private</span>
-              <% } else { %>
-                <span class="inline-flex items-center rounded-md ring-1 ring-gray-300 px-2 py-1 text-xs text-gray-700">Unlisted</span>
-              <% } %>
-            </div>
+        <% if (myThreads.length===0) { %>
+          <div class="rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center">
+            <p class="text-gray-600">No threads yet.</p>
+            <a href="/upload" class="inline-block mt-3 text-blue-600 hover:underline">Create your first thread</a>
           </div>
+          <% } else { %>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <% for (const t of myThreads) { %>
+                <article class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-4 flex flex-col"
+                  data-thread-id="<%= t.thread_id %>" onclick="loadThread('<%= t.thread_id %>')">
+                  <!-- Title + status/visibility -->
+                  <div class="mb-2 flex items-start justify-between gap-3">
+                    <h3 class="text-gray-900 font-semibold leading-6">
+                      <%= t.title %>
+                    </h3>
+                    <div class="flex items-center gap-2">
 
-          <!-- Tags -->
-          <% if (t.tags && t.tags.length) { %>
-            <div class="mb-3 flex flex-wrap gap-2">
-              <% t.tags.forEach(tag => { %>
-                <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700">#<%= tag %></span>
-              <% }) %>
+                      <!-- Actions -->
+                      <button type="button"
+                        class="cursor-pointer rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 transition"
+                        onclick="loadThread('<%= t.thread_id %>')">
+                        View
+                      </button>
+
+                      <form action="/threads/<%= t.thread_id %>/delete" method="post" class="ml-auto">
+                        <button type="submit" onclick="return confirm('Delete this thread? This cannot be undone.');"
+                          class="cursor-pointer rounded-md bg-red-500 px-3 py-2 text-sm text-white hover:bg-red-600 transition">
+                          Delete
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+
+                  <!-- Tags -->
+                  <% if (t.tags && t.tags.length) { %>
+                    <div class="mb-3 flex flex-wrap gap-2">
+                      <% for (const tag of t.tags) { %>
+                        <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700">#
+                          <%= tag %>
+                        </span>
+                        <% } %>
+                    </div>
+                    <% } %>
+
+                      <!-- Meta -->
+                      <dl class="mb-4 grid grid-cols-3 gap-2 text-sm">
+                        <div class="rounded-md bg-gray-100 py-2 text-center">
+                          <dt class="text-gray-500">Views</dt>
+                          <dd class="font-semibold text-gray-900 js-thread-views">
+                            <%= t.views %>
+                          </dd>
+                        </div>
+                        <div class="rounded-md bg-gray-100 py-2 text-center">
+                          <dt class="text-gray-500">Comments</dt>
+                          <dd class="font-semibold text-gray-900 js-thread-comments">
+                            <%= t.comments_count %>
+                          </dd>
+                        </div>
+                        <div class="rounded-md bg-gray-100 py-2 text-center">
+                          <dt class="text-gray-500">Likes</dt>
+                          <dd class="font-semibold text-gray-900 js-thread-likes">
+                            <%= t.likes_count %>
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <!-- Dates -->
+                      <p class="text-xs text-gray-500 mb-4">
+                        Created: <%= new Date(t.created_at).toLocaleDateString() %> · Updated: <%= new Date(t.updated_at).toLocaleDateString() %>
+                      </p>
+                </article>
+                <% } %>
             </div>
-          <% } %>
 
-          <!-- Meta -->
-          <dl class="mb-4 grid grid-cols-3 gap-2 text-sm">
-            <div class="rounded-md bg-gray-100 py-2 text-center">
-              <dt class="text-gray-500">Views</dt>
-              <dd class="font-semibold text-gray-900"><%= t.views %></dd>
-            </div>
-            <div class="rounded-md bg-gray-100 py-2 text-center">
-              <dt class="text-gray-500">Comments</dt>
-              <dd class="font-semibold text-gray-900"><%= t.comments %></dd>
-            </div>
-            <div class="rounded-md bg-gray-100 py-2 text-center">
-              <dt class="text-gray-500">Likes</dt>
-              <dd class="font-semibold text-gray-900"><%= t.likes %></dd>
-            </div>
-          </dl>
+            <!-- Thread Detail Modal -->
+            <%- include('templates/threadModal') %>
 
-          <!-- Dates -->
-          <p class="text-xs text-gray-500 mb-4">
-            Created: <%= t.createdAt %> · Updated: <%= t.updatedAt %>
-          </p>
+              <!-- Pagination (mock rollback) -->
+              <div class="mt-6 flex items-center justify-center gap-2">
+                <a href="/profile?page=1" class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm hover:bg-gray-100">« First</a>
+                <a href="/profile?page=2" class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm hover:bg-gray-100">‹ Prev</a>
+                <span class="text-sm text-gray-600">Page 3 of 12</span>
+                <a href="/profile?page=4" class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm hover:bg-gray-100">Next ›</a>
+                <a href="/profile?page=12" class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm hover:bg-gray-100">Last »</a>
+              </div>
+              <% } %>
+    </section>
 
-          <!-- Actions -->
-          <div class="mt-auto flex items-center gap-2">
-            <a href="/threads/<%= t.id %>" class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 transition">View</a>
-            <a href="/threads/<%= t.id %>/edit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500 transition">Edit</a>
+  </main>
 
-            <% if (t.visibility === 'public') { %>
-              <form action="/threads/<%= t.id %>/visibility" method="post">
-                <input type="hidden" name="visibility" value="private"/>
-                <button class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm hover:bg-gray-100 transition" type="submit">Make Private</button>
-              </form>
-            <% } else { %>
-              <form action="/threads/<%= t.id %>/visibility" method="post">
-                <input type="hidden" name="visibility" value="public"/>
-                <button class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm hover:bg-gray-100 transition" type="submit">Make Public</button>
-              </form>
-            <% } %>
+  <!-- Include Footer -->
+  <%- include('templates/footer') %>
 
-            <form action="/threads/<%= t.id %>/delete" method="post" class="ml-auto" onsubmit="return confirm('Delete this thread? This cannot be undone.');">
-              <button class="rounded-md bg-red-500 px-3 py-2 text-sm text-white hover:bg-red-600 transition" type="submit">Delete</button>
-            </form>
-          </div>
-        </article>
-      <% }) %>
-    </div>
-
-    <!-- Pagination (mock) -->
-    <div class="mt-6 flex items-center justify-center gap-2">
-      <a href="?page=1" class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm hover:bg-gray-100">« First</a>
-      <a href="?page=2" class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm hover:bg-gray-100">‹ Prev</a>
-      <span class="text-sm text-gray-600">Page 3 of 12</span>
-      <a href="?page=4" class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm hover:bg-gray-100">Next ›</a>
-      <a href="?page=12" class="rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm hover:bg-gray-100">Last »</a>
-    </div>
-  <% } %>
-</section>
-
-      </main>
-
-      <!-- Include Footer -->
-      <%- include('templates/footer') %>
-    
 </body>
 
 </html>

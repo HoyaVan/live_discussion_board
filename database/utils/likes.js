@@ -1,65 +1,54 @@
 const { pool: mysqlPool } = include('database/connect_mysql');
 
-async function likeThread(userId, threadId) {
-    try {
-        // Check if already liked
-        const [existing] = await mysqlPool.execute(
-            'SELECT _id FROM likes WHERE user_id = ? AND target_type = "thread" AND target_id = ?',
-            [userId, threadId]
-        );
-        
-        if (existing.length > 0) {
-            return false; // Already liked
-        }
-        
-        // Add like
-        await mysqlPool.execute(
-            'INSERT INTO likes (user_id, target_type, target_id) VALUES (?, "thread", ?)',
-            [userId, threadId]
-        );
-        
-        // Update thread likes count
-        await mysqlPool.execute(
-            'UPDATE threads SET likes_count = likes_count + 1 WHERE thread_id = ?',
-            [threadId]
-        );
-        
-        return true;
-    } catch (error) {
-        console.log("Error liking thread:", error);
-        return false;
+async function toggleLike({ userId, targetType, targetId }) {
+  const conn = await mysqlPool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.execute(
+      'SELECT _id FROM likes WHERE user_id = ? AND target_type = ? AND target_id = ? FOR UPDATE',
+      [userId, targetType, targetId]
+    );
+
+    let liked;
+    if (rows.length) {
+      await conn.execute(
+        'DELETE FROM likes WHERE user_id = ? AND target_type = ? AND target_id = ?',
+        [userId, targetType, targetId]
+      );
+      await conn.execute(
+        targetType === 'thread'
+          ? 'UPDATE threads SET likes_count = GREATEST(likes_count - 1, 0) WHERE thread_id = ?'
+          : 'UPDATE comments SET likes_count = GREATEST(likes_count - 1, 0) WHERE comment_id = ?',
+        [targetId]
+      );
+      liked = false;
+    } else {
+      await conn.execute(
+        'INSERT INTO likes (user_id, target_type, target_id) VALUES (?, ?, ?)',
+        [userId, targetType, targetId]
+      );
+      await conn.execute(
+        targetType === 'thread'
+          ? 'UPDATE threads SET likes_count = likes_count + 1 WHERE thread_id = ?'
+          : 'UPDATE comments SET likes_count = likes_count + 1 WHERE comment_id = ?',
+        [targetId]
+      );
+      liked = true;
     }
+
+    await conn.commit();
+    return { liked };
+  } catch (e) {
+    await conn.rollback();
+    console.log('toggleLike error', e);
+    return { liked: null };
+  } finally {
+    conn.release();
+  }
 }
 
-async function likeComment(userId, commentId) {
-    try {
-        // Check if already liked
-        const [existing] = await mysqlPool.execute(
-            'SELECT _id FROM likes WHERE user_id = ? AND target_type = "comment" AND target_id = ?',
-            [userId, commentId]
-        );
-        
-        if (existing.length > 0) {
-            return false; // Already liked
-        }
-        
-        // Add like
-        await mysqlPool.execute(
-            'INSERT INTO likes (user_id, target_type, target_id) VALUES (?, "comment", ?)',
-            [userId, commentId]
-        );
-        
-        // Update comment likes count
-        await mysqlPool.execute(
-            'UPDATE comments SET likes_count = likes_count + 1 WHERE comment_id = ?',
-            [commentId]
-        );
-        
-        return true;
-    } catch (error) {
-        console.log("Error liking comment:", error);
-        return false;
-    }
-}
+async function likeThread(userId, threadId) { return toggleLike({ userId, targetType: 'thread', targetId: threadId }); }
+async function likeComment(userId, commentId) { return toggleLike({ userId, targetType: 'comment', targetId: commentId }); }
 
 module.exports = { likeThread, likeComment };

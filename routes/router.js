@@ -24,7 +24,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
   fileFilter: (_req, file, cb) => {
-    const ok = ['image/png','image/jpeg','image/webp','image/gif','image/avif'].includes(file.mimetype);
+    const ok = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif'].includes(file.mimetype);
     cb(ok ? null : new Error('Invalid file type'), ok);
   }
 });
@@ -66,13 +66,13 @@ router.post('/submitLogin', async (req, res) => {
     }
 
     // set session
-    req.session.user = { 
-    user_id: user.user_id, 
-    username: user.username, 
-    email: user.email,
-    avatar_url: user.avatar_url || process.env.DEFAULT_AVATAR_URL || null
-  };
-  req.session.cookie.maxAge = expireTime;
+    req.session.user = {
+      user_id: user.user_id,
+      username: user.username,
+      email: user.email,
+      avatar_url: user.avatar_url || process.env.DEFAULT_AVATAR_URL || null
+    };
+    req.session.cookie.maxAge = expireTime;
 
 
     // >>> go to profile (not /loggedin)
@@ -113,13 +113,13 @@ router.post("/submitSignup", async (req, res) => {
     }
 
     // Optional: log them in right away
-    req.session.user = { 
-    user_id: null, 
-    username, 
-    email, 
-    avatar_url: process.env.DEFAULT_AVATAR_URL || null 
-  };
-  req.session.cookie.maxAge = expireTime;
+    req.session.user = {
+      user_id: null,
+      username,
+      email,
+      avatar_url: process.env.DEFAULT_AVATAR_URL || null
+    };
+    req.session.cookie.maxAge = expireTime;
 
 
     return res.redirect("/profile");
@@ -242,7 +242,7 @@ router.post('/account/delete', authRequired, async (req, res) => {
         const cloudinary = include('database/utils/cloudinary');
         await cloudinary.uploader.destroy(row.avatar_pid);
       }
-    } catch (_) {}
+    } catch (_) { }
 
     const ok = await db_users.deleteUser({ user_id: userId });
 
@@ -277,7 +277,7 @@ router.post('/profile/avatar', authRequired, upload.single('avatar'), async (req
     });
 
     if (prevPid) {
-      try { await cloudinary.uploader.destroy(prevPid); } catch (_) {}
+      try { await cloudinary.uploader.destroy(prevPid); } catch (_) { }
     }
 
     await db_users.setUserAvatar({ user_id: userId, avatar_url: result.secure_url, avatar_pid: result.public_id });
@@ -298,7 +298,7 @@ router.post('/profile/avatar/reset', authRequired, async (req, res) => {
     const prevPid = userRow?.avatar_pid || null;
 
     if (prevPid) {
-      try { await cloudinary.uploader.destroy(prevPid); } catch (_) {}
+      try { await cloudinary.uploader.destroy(prevPid); } catch (_) { }
     }
     await db_users.resetUserAvatar({ user_id: userId });
     req.session.user.avatar_url = process.env.DEFAULT_AVATAR_URL || null;
@@ -380,18 +380,41 @@ router.get('/api/threads/:id', async (req, res) => {
   try {
     const threadId = req.params.id;
 
-    // fetch the updated thread and comments
+    // count each open
+    await db_threads.incrementThreadViews(threadId);
+
+    // then fetch fresh data
     const thread = await db_threads.getThreadById(threadId);
     const commentsRaw = await db_comments.getCommentsByThread(threadId);
-
     const userId = req.session.user?.user_id || null;
 
+    const [likedRows] = await include('database/connect_mysql').pool.execute(
+      'SELECT 1 FROM likes WHERE user_id = ? AND target_type = ? AND target_id = ? LIMIT 1',
+      [userId || 0, 'thread', threadId]
+    );
+    const userLiked = !!likedRows.length;
+
     // Add permissions and display text
+    // find which comments current user liked (for quick UI state)
+    let userLikedCommentIds = new Set();
+    try {
+      if (userId && commentsRaw.length) {
+        const ids = commentsRaw.map(c => c.comment_id);
+        const placeholders = ids.map(() => '?').join(',');
+        const [likedRowsComments] = await include('database/connect_mysql').pool.execute(
+          `SELECT target_id FROM likes WHERE user_id = ? AND target_type = 'comment' AND target_id IN (${placeholders})`,
+          [userId, ...ids]
+        );
+        userLikedCommentIds = new Set(likedRowsComments.map(r => Number(r.target_id)));
+      }
+    } catch (_) { }
+
     const enriched = commentsRaw.map(c => ({
       ...c,
       can_edit: !!userId && Number(userId) === Number(c.author_id) && c.is_deleted === 0,
       can_delete: !!userId && (Number(userId) === Number(c.author_id) || Number(userId) === Number(thread.author_id)) && c.is_deleted === 0,
-      display_body: c.is_deleted ? 'deleted' : c.body
+      display_body: c.is_deleted ? 'deleted' : c.body,
+      user_liked: userLikedCommentIds.has(Number(c.comment_id))
     }));
 
     // Build a tree (parent_comment_id -> children)
@@ -413,6 +436,7 @@ router.get('/api/threads/:id', async (req, res) => {
       success: true,
       thread: {
         ...thread,
+        user_liked: userLiked,
         comments: roots,
         total_likes: totalLikes,
       },
@@ -423,14 +447,26 @@ router.get('/api/threads/:id', async (req, res) => {
   }
 });
 
+router.post('/threads/:id/delete', authRequired, async (req, res) => {
+  try {
+    const threadId = Number(req.params.id);
+    const userId = req.session.user.user_id;
+    const ok = await db_threads.deleteThread({ thread_id: threadId, author_id: userId });
+    req.session[ok ? 'success' : 'error'] = ok ? 'Thread deleted.' : 'Delete failed or not allowed.';
+    return res.redirect('/profile');
+  } catch (e) {
+    req.session.error = 'Error deleting thread.';
+    return res.redirect('/profile');
+  }
+});
+
 // API route to like a thread
 router.post('/api/threads/:id/like', authRequired, async (req, res) => {
   try {
-    const threadId = req.params.id;
+    const threadId = Number(req.params.id);
     const userId = req.session.user.user_id;
-
-    const success = await db_likes.likeThread(userId, threadId);
-    res.json({ success });
+    const result = await db_likes.likeThread(userId, threadId); // { liked: boolean|null }
+    res.json({ success: result.liked !== null, liked: result.liked });
   } catch (error) {
     res.json({ success: false, error: error.message });
   }
@@ -439,13 +475,13 @@ router.post('/api/threads/:id/like', authRequired, async (req, res) => {
 // API route to like a comment
 router.post('/api/comments/:id/like', authRequired, async (req, res) => {
   try {
-    const commentId = req.params.id;
+    const commentId = Number(req.params.id);
     const userId = req.session.user.user_id;
-
-    const success = await db_likes.likeComment(userId, commentId);
-    res.json({ success });
+    const result = await db_likes.likeComment(userId, commentId); // { liked: true|false|null }
+    if (result.liked === null) return res.status(500).json({ success: false });
+    return res.json({ success: true, liked: result.liked });
   } catch (error) {
-    res.json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 

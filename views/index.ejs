@@ -2,293 +2,251 @@
 <html lang="en" class="h-full">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-    <link rel="stylesheet" type="text/css" href="/output.css" />
-    <link rel="stylesheet" type="text/css" href="/styles.css" />
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home</title>
+  <link rel="stylesheet" type="text/css" href="/output.css" />
+  <link rel="stylesheet" type="text/css" href="/styles.css" />
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 </head>
 <script>
   window.DEFAULT_AVATAR_URL = "<%= typeof default_avatar_url !== 'undefined' ? default_avatar_url : '/images/default-avatar.png' %>";
 </script>
 
 <body class="min-h-screen bg-gray-50 flex flex-col" data-authenticated="<%= locals.authenticated %>">
-    <header class="bg-white border-b">
-  <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-    
-    <!-- Left: Site Title -->
-    <h1 class="text-xl font-semibold text-blue-600 hover:text-blue-800 whitespace-nowrap">
-      <a href="/">Discussion Platform</a>
-    </h1>
+  <header class="bg-white border-b">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
 
-    <!-- Center: Search Bar -->
-    <div class="flex-1 flex justify-center">
-      <form id="searchForm" class="flex items-center gap-2 w-full max-w-md" onsubmit="return submitSearch(event)">
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Search threads & comments…"
-          class="w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 px-3 py-2 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
-        />
-        <button
-          type="submit"
-          class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        >
-          Search
-        </button>
-      </form>
+      <!-- Left: Site Title -->
+      <h1 class="text-xl font-semibold text-blue-600 hover:text-blue-800 whitespace-nowrap">
+        <a href="/">Discussion Platform</a>
+      </h1>
+
+      <!-- Center: Search Bar -->
+      <div class="flex-1 flex justify-center">
+        <form id="searchForm" class="flex items-center gap-2 w-full max-w-md" onsubmit="return submitSearch(event)">
+          <input id="searchInput" type="search" placeholder="Search threads & comments…"
+            class="w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 px-3 py-2 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm" />
+          <button type="submit"
+            class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+            Search
+          </button>
+        </form>
+      </div>
+
+      <!-- Right: Auth buttons -->
+      <div class="flex items-center gap-3 ml-4">
+        <% if (locals.authenticated) { %>
+          <!-- Upload -->
+          <a href="/upload" title="New Thread"
+            class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition ring-2 ring-gray-200">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </a>
+
+          <!-- Profile Avatar -->
+          <a href="/profile"
+            class="h-10 w-10 flex items-center justify-center rounded-full overflow-hidden ring-2 ring-gray-200 hover:ring-blue-400 transition"
+            title="Profile">
+            <img src="<%= avatar_url %>" alt="Profile" class="h-full w-full object-cover rounded-full" />
+          </a>
+
+          <!-- Logout -->
+          <form action="/logout" method="post">
+            <button type="submit" title="Log Out"
+              class="h-10 w-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition ring-2 ring-gray-200">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 12H9m9 0l-3 3m3-3l-3-3" />
+              </svg>
+            </button>
+          </form>
+          <% } else { %>
+            <a href="/login" class="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition">Log
+              In</a>
+            <a href="/signup" class="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">Sign
+              Up</a>
+            <% } %>
+      </div>
     </div>
+  </header>
 
-    <!-- Right: Auth buttons -->
-<div class="flex items-center gap-3 ml-4">
-  <% if (locals.authenticated) { %>
-    <!-- Upload -->
-    <a
-      href="/upload"
-      title="New Thread"
-      class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition ring-2 ring-gray-200"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round"
-           class="w-5 h-5">
-        <path d="M12 5v14M5 12h14"/>
-      </svg>
-    </a>
-
-    <!-- Profile Avatar -->
-    <a
-      href="/profile"
-      class="h-10 w-10 flex items-center justify-center rounded-full overflow-hidden ring-2 ring-gray-200 hover:ring-blue-400 transition"
-      title="Profile"
-    >
-      <img
-        src="<%= avatar_url %>"
-        alt="Profile"
-        class="h-full w-full object-cover rounded-full"
-      />
-    </a>
-
-    <!-- Logout -->
-    <form action="/logout" method="post">
-      <button
-        type="submit"
-        title="Log Out"
-        class="h-10 w-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition ring-2 ring-gray-200"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-             class="w-5 h-5">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 12H9m9 0l-3 3m3-3l-3-3" />
-        </svg>
-      </button>
-    </form>
-  <% } else { %>
-    <a href="/login"
-       class="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition">Log In</a>
-    <a href="/signup"
-       class="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">Sign Up</a>
-  <% } %>
-</div>
-  </div>
-</header>
-
-    <% if (error) { %>
-        <div id="error-popup" class="fixed bottom-4 right-4 z-50 pointer-events-auto animate-slide-in">
-            <div class="bg-red-100 text-red-600 px-6 py-4 rounded-lg shadow-lg relative max-w-xs w-full">
-                <button onclick="document.getElementById('error-popup').remove()"
-                        class="absolute top-3 right-1 pr-2 text-red-700 hover:text-red-900 font-bold text-lg">&times;</button>
-                <strong class="font-bold">Error:</strong> <%= error %>
-            </div>
-        </div>
+  <% if (error) { %>
+    <div id="error-popup" class="fixed bottom-4 right-4 z-50 pointer-events-auto animate-slide-in">
+      <div class="bg-red-100 text-red-600 px-6 py-4 rounded-lg shadow-lg relative max-w-xs w-full">
+        <button onclick="document.getElementById('error-popup').remove()"
+          class="absolute top-3 right-1 pr-2 text-red-700 hover:text-red-900 font-bold text-lg">&times;</button>
+        <strong class="font-bold">Error:</strong>
+        <%= error %>
+      </div>
+    </div>
     <% } %>
 
-    <% if (success) { %>
+      <% if (success) { %>
         <div id="success-popup" class="fixed bottom-4 right-4 z-50 pointer-events-auto animate-slide-in">
-            <div class="bg-green-100 text-green-700 px-6 py-4 rounded-lg shadow-lg relative max-w-xs w-full">
-                <button onclick="document.getElementById('success-popup').remove()"
-                        class="absolute top-3 right-1 pr-2 text-green-800 hover:text-green-900 font-bold text-lg">&times;</button>
-                <strong class="font-bold">Success:</strong> <%= success %>
-            </div>
+          <div class="bg-green-100 text-green-700 px-6 py-4 rounded-lg shadow-lg relative max-w-xs w-full">
+            <button onclick="document.getElementById('success-popup').remove()"
+              class="absolute top-3 right-1 pr-2 text-green-800 hover:text-green-900 font-bold text-lg">&times;</button>
+            <strong class="font-bold">Success:</strong>
+            <%= success %>
+          </div>
         </div>
-    <% } %>
+        <% } %>
 
-    <main class="flex-1 pb-20">
-        <!-- Search Results Panel -->
-<section id="searchResults" class="max-w-xl mx-auto px-4 mt-6 hidden">
-  <div class="rounded-lg bg-white ring-1 ring-gray-200 p-4">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-sm font-semibold text-gray-700">
-        Results for “<span id="searchQuery"></span>”
-      </h2>
-      <button
-        class="text-xs text-gray-500 hover:text-gray-700"
-        onclick="clearSearch()"
-      >
-        Clear
-      </button>
-    </div>
-    <div id="searchList" class="space-y-3"></div>
-  </div>
-</section>
-        <!-- Threads Feed -->
-        <div style="width: 100%;">
-            <div id="feed" style="width: 45%; min-width: 340px; max-width: 640px; margin: 0 auto; padding-left: 1rem; padding-right: 1rem;">
-                <% if (typeof threads !== 'undefined' && threads && threads.length > 0) { %>
-                    <div class="space-y-4">
-                        <% threads.forEach(thread => { %>
-                            <article class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 cursor-pointer hover:shadow-md transition-shadow"
-                                     onclick="loadThread('<%= thread.thread_id %>')">
-                                <!-- Thread Header - Compact View -->
-                                <div class="flex items-center justify-between gap-4">
-                                    <div class="flex-1 min-w-0">
-                                        <h2 class="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate">
-                                            <%= thread.title %>
-                                        </h2>
-                                        <div class="flex items-center text-sm text-gray-500 mt-1">
-                                            <img
-                                                src="<%= thread.author_avatar_url || default_avatar_url %>"
-                                                alt="<%= thread.username %>"
-                                                class="h-6 w-6 rounded-full object-cover ring-1 ring-gray-200 mr-2"
-                                            />
-                                            <span>by <strong><%= thread.username %></strong></span>
-                                            <span class="mx-2">•</span>
-                                            <time datetime="<%= thread.created_at %>">
-                                                <%= new Date(thread.created_at).toLocaleDateString() %>
-                                            </time>
-                                            </div>
-                                    </div>
+          <main class="flex-1 pb-20">
+            <!-- Search Results Panel -->
+            <section id="searchResults" class="max-w-xl mx-auto px-4 mt-6 hidden">
+              <div class="rounded-lg bg-white ring-1 ring-gray-200 p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <h2 class="text-sm font-semibold text-gray-700">
+                    Results for “<span id="searchQuery"></span>”
+                  </h2>
+                  <button class="text-xs text-gray-500 hover:text-gray-700" onclick="clearSearch()">
+                    Clear
+                  </button>
+                </div>
+                <div id="searchList" class="space-y-3"></div>
+              </div>
+            </section>
+            <!-- Threads Feed -->
+            <div style="width: 100%;">
+              <div id="feed"
+                style="width: 45%; min-width: 340px; max-width: 640px; margin: 0 auto; padding-left: 1rem; padding-right: 1rem;">
+                <% if (typeof threads !=='undefined' && threads && threads.length> 0) { %>
+                  <div class="space-y-4">
+                    <% threads.forEach(thread=> { %>
+                      <article
+                        class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 cursor-pointer hover:shadow-md transition-shadow"
+                        onclick="loadThread('<%= thread.thread_id %>')">
+                        <!-- Thread Header - Compact View -->
+                        <div class="flex items-center justify-between gap-4">
+                          <div class="flex-1 min-w-0">
+                            <h2
+                              class="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate">
+                              <%= thread.title %>
+                            </h2>
+                            <div class="flex items-center text-sm text-gray-500 mt-1">
+                              <img src="<%= thread.author_avatar_url || default_avatar_url %>"
+                                alt="<%= thread.username %>"
+                                class="h-6 w-6 rounded-full object-cover ring-1 ring-gray-200 mr-2 " />
+                              <span>by <strong>
+                                  <%= thread.username %>
+                                </strong></span>
+                              <span class="mx-2">•</span>
+                              <time datetime="<%= thread.created_at %>">
+                                <%= new Date(thread.created_at).toLocaleDateString() %>
+                              </time>
+                            </div>
+                          </div>
 
-                                    <div class="ml-4 shrink-0 flex items-center space-x-4 text-sm text-gray-500">
-                                        <% if (thread.views > 0) { %>
-                                        <span class="flex items-center">
-                                            Views: <%= thread.views %>
-                                        </span>
-                                        <% } %>
+                          <div class="ml-4 shrink-0 flex items-center space-x-4 text-sm text-gray-500">
+                            <% if (thread.views> 0) { %>
+                              <span class="flex items-center">
+                                Views: <%= thread.views %>
+                              </span>
+                              <% } %>
 
-                                        <% if (thread.comments_count > 0) { %>
-                                        <span class="flex items-center">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                            </svg>
-                                            <%= thread.comments_count %>
-                                        </span>
-                                        <% } %>
+                                <% if (thread.comments_count> 0) { %>
+                                  <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
+                                      </path>
+                                    </svg>
+                                    <%= thread.comments_count %>
+                                  </span>
+                                  <% } %>
 
-                                        <% if (thread.likes_count > 0) { %>
-                                        <span class="flex items-center">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                                            </svg>
-                                            <%= thread.likes_count %>
-                                        </span>
-                                        <% } %>
-                                    </div>
-                                </div>
-                            </article>
-                        <% }) %>
+                                    <% if (thread.likes_count> 0) { %>
+                                      <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z">
+                                          </path>
+                                        </svg>
+                                        <%= thread.likes_count %>
+                                      </span>
+                                      <% } %>
+                          </div>
+                        </div>
+                      </article>
+                      <% }) %>
+                  </div>
+
+                  <!-- End Message -->
+                  <div class="text-center py-8">
+                    <!-- Small Loading Spinner (hidden by default) -->
+                    <div id="threadLoadingSpinner"
+                      class="hidden fixed inset-0 flex items-center justify-center bg-white/75 z-50">
+                      <div class="h-16 w-16 rounded-full border-4 border-blue-600 border-t-transparent animate-spin">
+                      </div>
                     </div>
 
-                    <!-- End Message -->
-                    <div class="text-center py-8">
-                        <!-- Small Loading Spinner (hidden by default) -->
-                        <div id="threadLoadingSpinner" class="hidden fixed inset-0 flex items-center justify-center bg-white/75 z-50">
-                            <div class="h-16 w-16 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
-                        </div>
-                        
-                        <div class="flex items-center justify-center">
-                            <div class="flex-1 h-px bg-gray-300"></div>
-                            <div class="px-4 text-gray-500 font-medium">——— END ———</div>
-                            <div class="flex-1 h-px bg-gray-300"></div>
-                        </div>
-                        <p class="text-sm text-gray-400 mt-2">You've reached the end of the discussion feed</p>
+                    <div class="flex items-center justify-center">
+                      <div class="flex-1 h-px bg-gray-300"></div>
+                      <div class="px-4 text-gray-500 font-medium">——— END ———</div>
+                      <div class="flex-1 h-px bg-gray-300"></div>
                     </div>
+                    <p class="text-sm text-gray-400 mt-2">You've reached the end of the discussion feed</p>
+                  </div>
 
-                <% } else { %>
+                  <% } else { %>
                     <!-- No threads message -->
                     <div class="text-center py-12">
-                        <div class="max-w-md mx-auto">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <h3 class="mt-2 text-sm font-medium text-gray-900">No threads yet</h3>
-                            <p class="mt-1 text-sm text-gray-500">Be the first to start a discussion!</p>
-                            <% if (locals.authenticated) { %>
-                                <div class="mt-6">
-                                    <a href="/upload" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                        Create your first thread
-                                    </a>
-                                </div>
-                            <% } %>
-                        </div>
+                      <div class="max-w-md mx-auto">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor"
+                          viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                          </path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No threads yet</h3>
+                        <p class="mt-1 text-sm text-gray-500">Be the first to start a discussion!</p>
+                        <% if (locals.authenticated) { %>
+                          <div class="mt-6">
+                            <a href="/upload"
+                              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                              Create your first thread
+                            </a>
+                          </div>
+                          <% } %>
+                      </div>
                     </div>
-                <% } %>
-            </div>
-        </div>
-
-        <!-- Thread Detail Modal -->
-        <div id="threadModal"
-             class="fixed inset-0 z-50 hidden bg-black/50"
-             onclick="onThreadModalBackdropClick(event)">
-          <!-- absolutely centered panel -->
-          <div class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-              w-[600px] max-w-[calc(100vw-32px)] max-h-[80vh] overflow-y-auto
-              bg-white rounded-[8px] shadow-[0_10px_30px_rgba(0,0,0,0.2)] p-5"
-               onclick="event.stopPropagation()">
-            <div class="flex justify-end mb-2">
-              <button onclick="closeThreadModal()" class="text-gray-400 hover:text-gray-600" aria-label="Close">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
-
-            <!-- sticky title -->
-            <div class="sticky top-0 z-10 bg-white px-3 py-2 border-b text-center font-semibold">
-              Thread Detail
-            </div>
-
-            <div id="threadContent">
-              <div class="flex items-center justify-center py-12">
-                <div class="h-10 w-10 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
+                    <% } %>
               </div>
             </div>
 
-            <div class="mt-6">
-              <button onclick="closeThreadModal()"
-                      class="w-full px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-    </main>
+            <!-- Thread Detail Modal -->
+            <%- include('templates/threadModal') %>
 
-    <!-- Include Footer -->
-    <%- include('templates/footer') %>
+          </main>
 
-    <!-- External JavaScript -->
-    <script src="/js/threadModal.js"></script>
-   <script>
-async function submitSearch(e) {
-  e.preventDefault();
-  const q = document.getElementById('searchInput').value.trim();
-  if (!q) return false;
+          <!-- Include Footer -->
+          <%- include('templates/footer') %>
 
-  const r = await fetch(`/search?q=${encodeURIComponent(q)}`);
-  const data = await r.json();
+            <!-- External JavaScript -->
+            <script src="/js/threadModal.js"></script>
+            <script>
+              async function submitSearch(e) {
+                e.preventDefault();
+                const q = document.getElementById('searchInput').value.trim();
+                if (!q) return false;
 
-  if (!data.success) {
-    alert('Search failed');
-    return false;
-  }
+                const r = await fetch(`/search?q=${encodeURIComponent(q)}`);
+                const data = await r.json();
 
-  // Render results (quick inline example)
-  const list = (data.results || []).map(row => {
-    if (row.kind === 'thread') {
-      return `
+                if (!data.success) {
+                  alert('Search failed');
+                  return false;
+                }
+
+                // Render results (quick inline example)
+                const list = (data.results || []).map(row => {
+                  if (row.kind === 'thread') {
+                    return `
         <article class="p-4 bg-white rounded-md ring-1 ring-gray-200">
           <div class="flex items-center gap-3 mb-2">
             <img src="${row.author_avatar_url || window.DEFAULT_AVATAR_URL}" class="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200" />
@@ -299,8 +257,8 @@ async function submitSearch(e) {
           </div>
           <p class="text-sm text-gray-700 line-clamp-3">${row.description || ''}</p>
         </article>`;
-    } else {
-      return `
+                  } else {
+                    return `
         <article class="p-4 bg-white rounded-md ring-1 ring-gray-200">
           <div class="flex items-center gap-3 mb-2">
             <img src="${row.commenter_avatar_url || window.DEFAULT_AVATAR_URL}" class="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200" />
@@ -311,25 +269,26 @@ async function submitSearch(e) {
           </div>
           <p class="text-sm text-gray-700 line-clamp-3">${row.description || ''}</p>
         </article>`;
-    }
-  }).join('');
+                  }
+                }).join('');
 
-  // You can render to a dedicated container or reuse your modal:
-  const content = `
+                // You can render to a dedicated container or reuse your modal:
+                const content = `
     <div class="space-y-3">${list || '<p class="text-gray-500">No matches.</p>'}</div>
   `;
-  // Show results in the modal you already have
-  openThreadModal();
-  document.getElementById('threadContent').innerHTML = `
+                // Show results in the modal you already have
+                openThreadModal();
+                document.getElementById('threadContent').innerHTML = `
     <div class="sticky top-0 z-10 bg-white px-3 py-2 border-b text-center font-semibold">
       Search results for “${q}”
     </div>
     <div class="mt-3">${content}</div>
   `;
-  return false;
-}
-</script>
+                return false;
+              }
+            </script>
 
 
 </body>
+
 </html>
