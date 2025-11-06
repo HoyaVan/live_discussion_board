@@ -28,17 +28,17 @@
 
     <!-- Avatar Section -->
     <section class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-8">
-      <div class="flex items-center gap-5">
-        <img
-          src="<%= (typeof avatar_url !== 'undefined' && avatar_url) ? avatar_url : (process.env.DEFAULT_AVATAR_URL || '/images/default-avatar.png') %>"
-          alt="Avatar"
-          class="h-16 w-16 rounded-full object-cover ring-2 ring-gray-200"
-        />
-        <div>
-          <p class="text-sm text-gray-500">Logged in as</p>
-          <p class="font-medium text-gray-900"><%= username %> · <%= email %></p>
-        </div>
-      </div>
+      <div class="flex items-center" style="column-gap: 2rem;">
+  <img
+    src="<%= (typeof avatar_url !== 'undefined' && avatar_url) ? avatar_url : (process.env.DEFAULT_AVATAR_URL || '/images/default-avatar.png') %>"
+    alt="Avatar"
+    class="h-16 w-16 rounded-full object-cover ring-2 ring-gray-200"
+  />
+  <div>
+    <p class="text-sm text-gray-500">Logged in as</p>
+    <p class="font-medium text-gray-900"><%= username %> · <%= email %></p>
+  </div>
+</div>
 
       <div class="mt-6 flex flex-wrap items-center gap-4">
         <!-- Upload new avatar -->

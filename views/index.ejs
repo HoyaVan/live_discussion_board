@@ -39,7 +39,7 @@
         <% if (locals.authenticated) { %>
           <!-- Upload -->
           <a href="/upload" title="New Thread"
-            class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition ring-2 ring-gray-200">
+            class="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
               <path d="M12 5v14M5 12h14" />
@@ -56,7 +56,7 @@
           <!-- Logout -->
           <form action="/logout" method="post">
             <button type="submit" title="Log Out"
-              class="h-10 w-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition ring-2 ring-gray-200">
+              class="px-3 py-2 text-sm bg-red-600 text-white rounded hover:bg-green-700 transition">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                 stroke="currentColor" class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -128,17 +128,17 @@
                               class="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate">
                               <%= thread.title %>
                             </h2>
-                            <div class="flex items-center text-sm text-gray-500 mt-1">
-                              <img src="<%= thread.author_avatar_url || default_avatar_url %>"
-                                alt="<%= thread.username %>"
-                                class="h-6 w-6 rounded-full object-cover ring-1 ring-gray-200 mr-2 " />
-                              <span>by <strong>
-                                  <%= thread.username %>
-                                </strong></span>
-                              <span class="mx-2">•</span>
-                              <time datetime="<%= thread.created_at %>">
-                                <%= new Date(thread.created_at).toLocaleDateString() %>
-                              </time>
+                            <div class="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                <img
+                                    src="<%= thread.author_avatar_url || default_avatar_url %>"
+                                    alt="<%= thread.username %>"
+                                    class="h-6 w-6 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
+                                />
+                                <span>by <strong><%= thread.username %></strong></span>
+                                <span class="mx-2">•</span>
+                                <time datetime="<%= thread.created_at %>">
+                                    <%= new Date(thread.created_at).toLocaleDateString() %>
+                                </time>
                             </div>
                           </div>
 

@@ -19,40 +19,22 @@ function displayThread(thread) {
             <div class="border-b pb-4 mb-6">
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">${thread.title}</h1>
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center text-sm text-gray-500">
-                    <img
+                    <div class="flex items-center gap-3 text-sm text-gray-500">
+                        <img
                         src="${thread.author_avatar_url || (window.DEFAULT_AVATAR_URL || '')}"
                         alt="${thread.username}"
-                        class="h-6 w-6 rounded-full object-cover ring-1 ring-gray-200 mr-2"
-                    />
-                    <span>by <strong>${thread.username}</strong></span>
-                    <span class="mx-2">•</span>
-                    <time>${new Date(thread.created_at).toLocaleDateString()}</time>
+                        class="h-6 w-6 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
+                        />
+                        <span>by <strong>${thread.username}</strong></span>
+                        <span class="mx-2">•</span>
+                        <time>${new Date(thread.created_at).toLocaleDateString()}</time>
                     </div>
 
                     <div class="flex items-center space-x-4 text-sm text-gray-500">
-                        ${thread.views > 0 ? `
-                        <span class="flex items-center">
-                            ${viewsLabel(thread.views)}
-                        </span>` : ''}
-
-                        ${thread.comments_count > 0 ? `
-                        <span class="flex items-center">
-                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
-                            ${thread.comments_count}
-                        </span>` : ''}
-
-                        ${thread.total_likes > 0 ? `
-                        <span class="flex items-center">
-                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                            </svg>
-                            ${thread.total_likes}
-                        </span>` : ''}
+                        ...
                     </div>
-                </div>
+                    </div>
+
             </div>
 
             <!-- Thread Body -->
