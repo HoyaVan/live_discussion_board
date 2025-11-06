@@ -207,6 +207,24 @@ async function getThreadsByAuthorPaginated(author_id, limit, offset) {
     return [];
   }
 }
+async function getTrendingThreads() {
+  const sql = `
+    SELECT t.thread_id, t.author_id, t.title, t.description, t.views,
+           t.likes_count, t.comments_count, t.created_at, t.updated_at,
+           u.username, u.email, u.avatar_url AS author_avatar_url
+    FROM threads t
+    JOIN users u ON t.author_id = u.user_id
+    ORDER BY t.views DESC, t.created_at DESC
+    LIMIT 50
+  `;
+  try {
+    const [rows] = await mysqlPool.execute(sql);
+    return rows;
+  } catch (e) {
+    console.log('Error getTrendingThreads:', e);
+    throw e;
+  }
+}
 
 module.exports = {
   createThread,
@@ -218,4 +236,5 @@ module.exports = {
   incrementUniqueView,
   countThreadsByAuthor,
   getThreadsByAuthorPaginated,
+  getTrendingThreads,
 };

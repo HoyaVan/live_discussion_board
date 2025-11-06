@@ -185,6 +185,29 @@ router.get('/search', async (req, res) => {
   }
 });
 
+router.get('/trending', async (req, res) => {
+  try {
+    const threads = await db_threads.getTrendingThreads();
+    res.render('trending', {
+      title: 'Trending Threads',
+      threads,
+      default_avatar_url: process.env.DEFAULT_AVATAR_URL || '/images/default-avatar.png',
+      avatar_url: req.session?.user?.avatar_url || process.env.DEFAULT_AVATAR_URL || '/images/default-avatar.png',
+      authenticated: !!req.session?.user,
+      error: null,
+    });
+  } catch (err) {
+    console.error('Error fetching trending threads:', err);
+    res.render('trending', {
+      title: 'Trending Threads',
+      threads: [],
+      default_avatar_url: process.env.DEFAULT_AVATAR_URL || '/images/default-avatar.png',
+      avatar_url: req.session?.user?.avatar_url || process.env.DEFAULT_AVATAR_URL || '/images/default-avatar.png',
+      authenticated: !!req.session?.user,
+      error: 'Unable to load trending threads right now.',
+    });
+  }
+});
 
 router.get("/profile", authRequired, async (req, res) => {
   try {
